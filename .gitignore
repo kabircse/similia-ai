@@ -1,0 +1,32 @@
+cat > .gitignore <<'EOF'
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Node
+node_modules/
+dist/
+
+# Laravel
+/apps/backend/vendor/
+/apps/backend/storage/*.key
+/apps/backend/storage/logs/*
+/apps/backend/bootstrap/cache/*.php
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Docker
+docker-data/
+EOF
