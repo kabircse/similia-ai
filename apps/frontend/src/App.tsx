@@ -1,50 +1,57 @@
-import { useState } from "react";
-import { getMe, login, logout } from "./lib/api";
+import { Navigate, Route, Routes } from "react-router";
+import { ProtectedRoute } from "./components/routes/ProtectedRoute";
+import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { DashboardPage } from "./pages/DashboardPage";
+import { LoginPage } from "./pages/LoginPage";
+
+function ComingSoonPage({ title }: { title: string }) {
+  return (
+    <div className="panel">
+      <h1>{title}</h1>
+      <p>This module will be implemented in upcoming issues.</p>
+    </div>
+  );
+}
 
 function App() {
-  const [result, setResult] = useState<string>("");
-
-  const handleLogin = async () => {
-    try {
-      const data = await login("doctor@similia.test", "password");
-      setResult(JSON.stringify(data, null, 2));
-    } catch (error: any) {
-      setResult(JSON.stringify(error.response?.data ?? error.message, null, 2));
-    }
-  };
-
-  const handleMe = async () => {
-    try {
-      const data = await getMe();
-      setResult(JSON.stringify(data, null, 2));
-    } catch (error: any) {
-      setResult(JSON.stringify(error.response?.data ?? error.message, null, 2));
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      const data = await logout();
-      setResult(JSON.stringify(data, null, 2));
-    } catch (error: any) {
-      setResult(JSON.stringify(error.response?.data ?? error.message, null, 2));
-    }
-  };
-
   return (
-    <main style={{ padding: 32 }}>
-      <h1>Similia AI Auth Test</h1>
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<LoginPage />} />
 
-      <button onClick={handleLogin}>Login as Demo Doctor</button>
-      <button onClick={handleMe} style={{ marginLeft: 12 }}>
-        Get Current User
-      </button>
-      <button onClick={handleLogout} style={{ marginLeft: 12 }}>
-        Logout
-      </button>
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DashboardPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
 
-      <pre style={{ marginTop: 24 }}>{result}</pre>
-    </main>
+      {[
+        ["patients", "Patients"],
+        ["case-taking", "Case Taking"],
+        ["repertory", "Repertory"],
+        ["materia-medica", "Materia Medica"],
+        ["prescriptions", "Prescriptions"],
+        ["fees", "Fees"],
+        ["settings", "Settings"],
+      ].map(([path, title]) => (
+        <Route
+          key={path}
+          path={`/${path}`}
+          element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <ComingSoonPage title={title} />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+      ))}
+    </Routes>
   );
 }
 
