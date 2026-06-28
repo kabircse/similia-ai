@@ -21,6 +21,8 @@ dist/
 /apps/backend/storage/logs/*
 /apps/backend/bootstrap/cache/*.php
 
+/docs/local-info.md
+
 # Python
 __pycache__/
 *.pyc
