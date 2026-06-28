@@ -3,6 +3,9 @@ import { ProtectedRoute } from "./components/routes/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { PatientsPage } from "./pages/PatientsPage";
+import { PatientFormPage } from "./pages/PatientFormPage";
+import { PatientDetailPage } from "./pages/PatientDetailPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -10,6 +13,14 @@ function ComingSoonPage({ title }: { title: string }) {
       <h1>{title}</h1>
       <p>This module will be implemented in upcoming issues.</p>
     </div>
+  );
+}
+
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <DashboardLayout>{children}</DashboardLayout>
+    </ProtectedRoute>
   );
 }
 
@@ -22,16 +33,49 @@ function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
-            <DashboardLayout>
-              <DashboardPage />
-            </DashboardLayout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <DashboardPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/patients"
+        element={
+          <ProtectedLayout>
+            <PatientsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/patients/new"
+        element={
+          <ProtectedLayout>
+            <PatientFormPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId"
+        element={
+          <ProtectedLayout>
+            <PatientDetailPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/edit"
+        element={
+          <ProtectedLayout>
+            <PatientFormPage />
+          </ProtectedLayout>
         }
       />
 
       {[
-        ["patients", "Patients"],
         ["case-taking", "Case Taking"],
         ["repertory", "Repertory"],
         ["materia-medica", "Materia Medica"],
@@ -43,11 +87,9 @@ function App() {
           key={path}
           path={`/${path}`}
           element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                <ComingSoonPage title={title} />
-              </DashboardLayout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <ComingSoonPage title={title} />
+            </ProtectedLayout>
           }
         />
       ))}

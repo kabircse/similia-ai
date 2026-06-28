@@ -507,3 +507,271 @@ button:disabled {
     justify-self: start;
   }
 }
+
+
+.page-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.page-header {
+  background: #ffffff;
+  border: 1px solid #e3e9e3;
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(18, 40, 28, 0.07);
+  padding: 28px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.page-header p {
+  margin: 0;
+  color: #526052;
+}
+
+.header-actions,
+.form-actions,
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primary-link,
+.secondary-link {
+  border-radius: 12px;
+  padding: 11px 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.primary-link {
+  background: #145c43;
+  color: #ffffff;
+}
+
+.primary-link:hover {
+  background: #0f4934;
+}
+
+.secondary-link {
+  border: 1px solid #d7dfd8;
+  background: #ffffff;
+  color: #102018;
+}
+
+.secondary-link:hover {
+  background: #f4f6f2;
+}
+
+.search-row {
+  margin-bottom: 18px;
+}
+
+.search-box {
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d7dfd8;
+  border-radius: 14px;
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  flex: 1;
+  padding: 12px 4px;
+  color: #102018;
+  background: transparent;
+}
+
+.empty-panel {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 8px;
+  color: #708074;
+}
+
+.empty-panel h3 {
+  margin: 8px 0 0;
+  color: #102018;
+}
+
+.empty-panel p {
+  margin: 0 0 12px;
+}
+
+.patient-table {
+  display: grid;
+  gap: 10px;
+}
+
+.patient-table-head,
+.patient-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 0.9fr 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.patient-table-head {
+  color: #708074;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 14px 8px;
+}
+
+.patient-row {
+  border: 1px solid #edf0eb;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.patient-row p {
+  margin: 4px 0 0;
+  color: #708074;
+  font-size: 13px;
+}
+
+.patient-name {
+  color: #102018;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.patient-name:hover {
+  color: #145c43;
+}
+
+.table-actions a {
+  color: #145c43;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.danger-button {
+  border: none;
+  border-radius: 10px;
+  background: #fff0f0;
+  color: #a32121;
+  padding: 8px 10px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 800;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #ffe2e2;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: #145c43;
+  box-shadow: 0 0 0 3px rgba(20, 92, 67, 0.12);
+}
+
+.full-field {
+  grid-column: 1 / -1;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.full-panel {
+  grid-column: 1 / -1;
+}
+
+.detail-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.detail-list div {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-list dt {
+  color: #708074;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.detail-list dd {
+  margin: 0;
+  color: #102018;
+}
+
+.notes-text {
+  margin: 0;
+  color: #526052;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 920px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .patient-table-head {
+    display: none;
+  }
+
+  .patient-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-actions {
+    justify-content: flex-start;
+  }
+
+  .form-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
