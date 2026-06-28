@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { getDashboardOverview } from "../lib/api";
+import { Link } from "react-router";
 
 const summaryIcons = {
   total_patients: Users,
@@ -53,9 +54,9 @@ export function DashboardPage() {
         </div>
 
         <div className="hero-actions">
-          <button className="primary-button" disabled>
+          <Link to="/patients/new" className="primary-link">
             New Patient
-          </button>
+          </Link>
           <button className="secondary-button" disabled>
             New Case
           </button>
