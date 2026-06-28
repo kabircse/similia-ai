@@ -22,6 +22,7 @@ dist/
 /apps/backend/bootstrap/cache/*.php
 
 /docs/local-info.md
+/docs/project.md
 
 # Python
 __pycache__/
