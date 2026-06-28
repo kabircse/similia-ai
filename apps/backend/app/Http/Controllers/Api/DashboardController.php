@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Patient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,6 +12,12 @@ class DashboardController extends Controller
     public function overview(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        $patientQuery = Patient::query();
+
+        if ($user->role !== 'admin') {
+            $patientQuery->where('doctor_id', $user->id);
+        }
 
         return response()->json([
             'data' => [
@@ -22,7 +29,7 @@ class DashboardController extends Controller
                 ],
 
                 'summary' => [
-                    'total_patients' => 0,
+                    'total_patients' => $patientQuery->count(),
                     'today_visits' => 0,
                     'pending_followups' => 0,
                     'prescriptions_saved' => 0,
@@ -32,7 +39,7 @@ class DashboardController extends Controller
                     [
                         'title' => 'Create Patient',
                         'description' => 'Register a new patient profile.',
-                        'status' => 'coming_next',
+                        'status' => 'available',
                     ],
                     [
                         'title' => 'Take Case',
