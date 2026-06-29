@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Patient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\PatientVisit;
 
 class DashboardController extends Controller
 {
@@ -14,6 +15,12 @@ class DashboardController extends Controller
         $user = $request->user();
 
         $patientQuery = Patient::query();
+
+        $visitQuery = PatientVisit::query();
+
+        if ($user->role !== 'admin') {
+            $visitQuery->where('doctor_id', $user->id);
+        }
 
         if ($user->role !== 'admin') {
             $patientQuery->where('doctor_id', $user->id);
@@ -30,7 +37,7 @@ class DashboardController extends Controller
 
                 'summary' => [
                     'total_patients' => $patientQuery->count(),
-                    'today_visits' => 0,
+                    'today_visits' => (clone $visitQuery)->whereDate('visit_date', now()->toDateString())->count(),
                     'pending_followups' => 0,
                     'prescriptions_saved' => 0,
                 ],

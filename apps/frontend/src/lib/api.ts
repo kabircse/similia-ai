@@ -156,3 +156,135 @@ export async function deletePatient(patientId: string | number) {
   const response = await api.delete(`/api/patients/${patientId}`);
   return response.data;
 }
+
+export type CaseSections = {
+  location: string;
+  sensation: string;
+  modalities: string;
+  concomitants: string;
+  mentals: string;
+  generals: string;
+  thermal_state: string;
+  thirst: string;
+  appetite: string;
+  food_desires: string;
+  food_aversions: string;
+  sleep: string;
+  dreams: string;
+  stool: string;
+  urine: string;
+  menses: string;
+  past_history: string;
+  family_history: string;
+  current_medicine: string;
+  reports_note: string;
+};
+
+export type PatientVisit = {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  visit_date: string;
+  visit_type: "initial" | "follow_up";
+  status: "draft" | "completed";
+  case_source: "manual" | "raw" | "mixed";
+  chief_complaint: string | null;
+  raw_case_text: string | null;
+  case_sections: Partial<CaseSections>;
+  missing_questions: string[];
+  red_flags: string[];
+  doctor_notes: string | null;
+  next_follow_up_date: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type VisitInput = {
+  visit_date: string;
+  visit_type: "initial" | "follow_up";
+  status: "draft" | "completed";
+  case_source: "manual" | "raw" | "mixed";
+  chief_complaint: string;
+  raw_case_text: string;
+  case_sections: CaseSections;
+  doctor_notes: string;
+  next_follow_up_date: string;
+};
+
+export type VisitListResponse = {
+  data: PatientVisit[];
+  links?: unknown;
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+function nullableString(value: string) {
+  return value.trim() === "" ? null : value;
+}
+
+function normalizeVisitInput(input: VisitInput) {
+  return {
+    ...input,
+    chief_complaint: nullableString(input.chief_complaint),
+    raw_case_text: nullableString(input.raw_case_text),
+    doctor_notes: nullableString(input.doctor_notes),
+    next_follow_up_date: input.next_follow_up_date || null,
+  };
+}
+
+export async function getPatientVisits(
+  patientId: string | number
+): Promise<VisitListResponse> {
+  const response = await api.get(`/api/patients/${patientId}/visits`, {
+    params: {
+      per_page: 20,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getPatientVisit(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientVisit> {
+  const response = await api.get(`/api/patients/${patientId}/visits/${visitId}`);
+  return response.data.data;
+}
+
+export async function createPatientVisit(
+  patientId: string | number,
+  input: VisitInput
+): Promise<PatientVisit> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits`,
+    normalizeVisitInput(input)
+  );
+
+  return response.data.data;
+}
+
+export async function updatePatientVisit(
+  patientId: string | number,
+  visitId: string | number,
+  input: VisitInput
+): Promise<PatientVisit> {
+  const response = await api.put(
+    `/api/patients/${patientId}/visits/${visitId}`,
+    normalizeVisitInput(input)
+  );
+
+  return response.data.data;
+}
+
+export async function deletePatientVisit(
+  patientId: string | number,
+  visitId: string | number
+) {
+  const response = await api.delete(`/api/patients/${patientId}/visits/${visitId}`);
+  return response.data;
+}
