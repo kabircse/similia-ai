@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
 use App\Services\Repertorization\CrossRepertorizationEngine;
+use App\Services\Repertorization\EliminativeRepertorizationEngine;
 use App\Services\Repertorization\WeightedRepertorizationEngine;
 use Illuminate\Http\Request;
 
@@ -65,6 +66,23 @@ class RepertorizationController extends Controller
         Patient $patient,
         PatientVisit $visit,
         CrossRepertorizationEngine $engine
+    ): RepertorizationRunResource {
+        $this->ensureCanAccessVisit($request, $patient, $visit);
+
+        $run = $engine->run(
+            visit: $visit,
+            doctor: $request->user(),
+            settings: $request->validated('settings') ?? []
+        );
+
+        return new RepertorizationRunResource($run->load('results'));
+    }
+
+    public function runEliminative(
+        RunWeightedRepertorizationRequest $request,
+        Patient $patient,
+        PatientVisit $visit,
+        EliminativeRepertorizationEngine $engine
     ): RepertorizationRunResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 

@@ -509,3 +509,20 @@ export async function runCrossRepertorization(
 
   return response.data.data;
 }
+
+export async function runEliminativeRepertorization(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RepertorizationRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/repertorize/eliminative`,
+    {
+      settings: {
+        limit: 50,
+        strict_essential: true,
+      },
+    }
+  );
+
+  return response.data.data;
+}
