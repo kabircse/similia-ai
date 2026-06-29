@@ -17,6 +17,7 @@ class RepertorizationResult extends Model
         'rank',
         'supporting_rubrics',
         'missing_important_rubrics',
+        'metrics',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class RepertorizationResult extends Model
         'rank' => 'integer',
         'supporting_rubrics' => 'array',
         'missing_important_rubrics' => 'array',
+        'metrics' => 'array',
     ];
 
     public function run(): BelongsTo

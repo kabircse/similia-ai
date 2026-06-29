@@ -437,6 +437,7 @@ export type RepertorizationResult = {
   rank: number;
   supporting_rubrics: SupportingRubric[];
   missing_important_rubrics: MissingImportantRubric[];
+  metrics: Record<string, number | string | null>;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -461,13 +462,15 @@ export type RepertorizationRunListResponse = {
 
 export async function getRepertorizationRuns(
   patientId: string | number,
-  visitId: string | number
+  visitId: string | number,
+  method?: string
 ): Promise<RepertorizationRunListResponse> {
   const response = await api.get(
     `/api/patients/${patientId}/visits/${visitId}/repertorization-runs`,
     {
       params: {
         per_page: 10,
+        method,
       },
     }
   );
@@ -481,6 +484,22 @@ export async function runWeightedRepertorization(
 ): Promise<RepertorizationRun> {
   const response = await api.post(
     `/api/patients/${patientId}/visits/${visitId}/repertorize/weighted`,
+    {
+      settings: {
+        limit: 50,
+      },
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function runCrossRepertorization(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RepertorizationRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/repertorize/cross`,
     {
       settings: {
         limit: 50,

@@ -20,6 +20,7 @@ class RepertorizationResultResource extends JsonResource
             'rank' => $this->rank,
             'supporting_rubrics' => $this->supporting_rubrics ?? [],
             'missing_important_rubrics' => $this->missing_important_rubrics ?? [],
+            'metrics' => $this->metrics ?? [],
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

@@ -9,6 +9,7 @@ import {
 import { Brain } from "lucide-react";
 import { VisitRubricsPanel } from "../components/rubrics/VisitRubricsPanel";
 import { WeightedRepertorizationPanel } from "../components/repertorization/WeightedRepertorizationPanel";
+import { CrossRepertorizationPanel } from "../components/repertorization/CrossRepertorizationPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -163,6 +164,10 @@ export function VisitDetailPage() {
       
       {patientId && visitId && (
         <WeightedRepertorizationPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <CrossRepertorizationPanel patientId={patientId} visitId={visitId} />
       )}
 
       <section className="panel">

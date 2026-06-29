@@ -40,15 +40,20 @@ Route::middleware('auth:sanctum')->group(function () {
         '/patients/{patient}/visits/{visit}/repertorization-runs',
         [RepertorizationController::class, 'index']
     );
-    
+
     Route::get(
         '/patients/{patient}/visits/{visit}/repertorization-runs/{run}',
         [RepertorizationController::class, 'show']
     );
-    
+
     Route::post(
         '/patients/{patient}/visits/{visit}/repertorize/weighted',
         [RepertorizationController::class, 'runWeighted']
+    );
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/repertorize/cross',
+        [RepertorizationController::class, 'runCross']
     );
 
     Route::get('/dashboard', function () {
