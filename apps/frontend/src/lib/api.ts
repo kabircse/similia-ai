@@ -446,7 +446,7 @@ export type RepertorizationRun = {
   id: number;
   patient_visit_id: number;
   doctor_id: number;
-  method: "weighted" | string;
+  method: "weighted" | "cross" | "eliminative" | string;
   total_rubrics: number;
   essential_rubrics_count: number;
   settings: Record<string, unknown>;
@@ -521,6 +521,47 @@ export async function runEliminativeRepertorization(
         limit: 50,
         strict_essential: true,
       },
+    }
+  );
+
+  return response.data.data;
+}
+
+export type MateriaMedicaMethod = "weighted" | "cross" | "eliminative";
+
+export type MateriaMedicaRemedyComparison = {
+  remedy_code: string;
+  remedy_name: string;
+  rank: number;
+  total_score: number;
+  matching_points: string[];
+  differentiating_points: string[];
+  missing_questions: string[];
+  source_chunks: Array<{
+    section: string | null;
+    source_title: string | null;
+    content: string;
+    distance: number | null;
+  }>;
+};
+
+export type MateriaMedicaComparisonResponse = {
+  summary: string;
+  remedies: MateriaMedicaRemedyComparison[];
+  safety_note: string;
+  engine: string;
+};
+
+export async function compareMateriaMedica(
+  patientId: string | number,
+  visitId: string | number,
+  method?: MateriaMedicaMethod
+): Promise<MateriaMedicaComparisonResponse> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/materia-medica/compare`,
+    {
+      method,
+      limit: 3,
     }
   );
 

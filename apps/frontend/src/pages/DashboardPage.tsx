@@ -6,8 +6,6 @@ import {
   FileText,
   ClipboardList,
   Search,
-  BookOpen,
-  CheckCircle2,
 } from "lucide-react";
 import { getDashboardOverview } from "../lib/api";
 import { Link } from "react-router";

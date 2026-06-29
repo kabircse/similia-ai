@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Navigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "../../lib/api";

@@ -1,14 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\PatientController;
-use App\Http\Controllers\Api\PatientVisitController;
-use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\CaseRubricController;
-use App\Http\Controllers\Api\RepertoryRubricController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\MateriaMedicaComparisonController;
+use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PatientVisitAiController;
+use App\Http\Controllers\Api\PatientVisitController;
 use App\Http\Controllers\Api\RepertorizationController;
+use App\Http\Controllers\Api\RepertoryRubricController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
     return response()->json([
@@ -59,6 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(
         '/patients/{patient}/visits/{visit}/repertorize/eliminative',
         [RepertorizationController::class, 'runEliminative']
+    );
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/materia-medica/compare',
+        [MateriaMedicaComparisonController::class, 'compare']
     );
 
     Route::get('/dashboard', function () {
