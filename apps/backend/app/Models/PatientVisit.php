@@ -27,8 +27,8 @@ class PatientVisit extends Model
     ];
 
     protected $casts = [
-        'visit_date' => 'date',
-        'next_follow_up_date' => 'date',
+        'visit_date' => 'date:Y-m-d',
+        'next_follow_up_date' => 'date:Y-m-d',
         'case_sections' => 'array',
         'missing_questions' => 'array',
         'red_flags' => 'array',

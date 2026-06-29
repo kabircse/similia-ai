@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientVisitController;
+use App\Http\Controllers\Api\PatientVisitAiController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -21,6 +22,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::apiResource('patients', PatientController::class);
     Route::apiResource('patients.visits', PatientVisitController::class);
+    Route::post(
+        '/patients/{patient}/visits/{visit}/structure-case',
+        [PatientVisitAiController::class, 'structure']
+    );
 
     Route::get('/dashboard', function () {
         return response()->json([
