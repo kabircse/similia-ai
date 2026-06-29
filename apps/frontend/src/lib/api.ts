@@ -567,3 +567,102 @@ export async function compareMateriaMedica(
 
   return response.data.data;
 }
+
+export type PrescriptionSourceMethod =
+  | "manual"
+  | "weighted"
+  | "cross"
+  | "eliminative";
+
+export type PatientPrescription = {
+  id: number;
+  patient_visit_id: number;
+  patient_id: number;
+  doctor_id: number;
+
+  repertorization_run_id: number | null;
+  repertorization_result_id: number | null;
+  source_method: PrescriptionSourceMethod | null;
+
+  remedy_code: string | null;
+  remedy_name: string;
+  potency: string;
+  repetition: string | null;
+
+  dose_instruction: string | null;
+  reason: string | null;
+  advice: string | null;
+  food_lifestyle_note: string | null;
+
+  follow_up_date: string | null;
+
+  status: "draft" | "final";
+  finalized_at: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PrescriptionInput = {
+  repertorization_result_id: number | null;
+  source_method: PrescriptionSourceMethod;
+  remedy_code: string;
+  remedy_name: string;
+  potency: string;
+  repetition: string;
+  dose_instruction: string;
+  reason: string;
+  advice: string;
+  food_lifestyle_note: string;
+  follow_up_date: string;
+  status: "draft" | "final";
+};
+
+function normalizePrescriptionInput(input: PrescriptionInput) {
+  return {
+    ...input,
+    repertorization_result_id: input.repertorization_result_id || null,
+    remedy_code: input.remedy_code || null,
+    repetition: input.repetition || null,
+    dose_instruction: input.dose_instruction || null,
+    reason: input.reason || null,
+    advice: input.advice || null,
+    food_lifestyle_note: input.food_lifestyle_note || null,
+    follow_up_date: input.follow_up_date || null,
+  };
+}
+
+export async function getVisitPrescription(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientPrescription | null> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/prescription`
+  );
+
+  return response.data.data;
+}
+
+export async function saveVisitPrescription(
+  patientId: string | number,
+  visitId: string | number,
+  input: PrescriptionInput
+): Promise<PatientPrescription> {
+  const response = await api.put(
+    `/api/patients/${patientId}/visits/${visitId}/prescription`,
+    normalizePrescriptionInput(input)
+  );
+
+  return response.data.data;
+}
+
+export async function deleteVisitPrescription(
+  patientId: string | number,
+  visitId: string | number
+) {
+  const response = await api.delete(
+    `/api/patients/${patientId}/visits/${visitId}/prescription`
+  );
+
+  return response.data;
+}

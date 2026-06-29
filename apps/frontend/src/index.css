@@ -1263,3 +1263,58 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.prescription-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.prescription-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.prescription-form input,
+.prescription-form select,
+.prescription-form textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+}
+
+.prescription-form input:focus,
+.prescription-form select:focus,
+.prescription-form textarea:focus {
+  border-color: #145c43;
+  box-shadow: 0 0 0 3px rgba(20, 92, 67, 0.12);
+}
+
+.safety-note {
+  border: 1px solid #d9e8ff;
+  background: #f7fbff;
+  color: #42526b;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.success-panel {
+  border: 1px solid #cfe9d7;
+  background: #f0fff4;
+  color: #145c43;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 800;
+}
+
+@media (max-width: 920px) {
+  .prescription-form {
+    grid-template-columns: 1fr;
+  }
+}
