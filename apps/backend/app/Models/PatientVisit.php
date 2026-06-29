@@ -60,4 +60,9 @@ class PatientVisit extends Model
     {
         return $this->hasOne(PatientPrescription::class);
     }
+
+    public function fee(): HasOne
+    {
+        return $this->hasOne(PatientFee::class);
+    }
 }

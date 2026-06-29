@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PatientFeeController;
 use App\Http\Controllers\Api\PatientPrescriptionController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
@@ -81,6 +82,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete(
         '/patients/{patient}/visits/{visit}/prescription',
         [PatientPrescriptionController::class, 'destroy']
+    );
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/fee',
+        [PatientFeeController::class, 'show']
+    );
+
+    Route::put(
+        '/patients/{patient}/visits/{visit}/fee',
+        [PatientFeeController::class, 'save']
+    );
+
+    Route::delete(
+        '/patients/{patient}/visits/{visit}/fee',
+        [PatientFeeController::class, 'destroy']
     );
 
     Route::get('/dashboard', function () {
