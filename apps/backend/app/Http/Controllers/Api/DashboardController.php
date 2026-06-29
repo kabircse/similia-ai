@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Patient;
+use App\Models\PatientPrescription;
+use App\Models\PatientVisit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Models\PatientVisit;
 
 class DashboardController extends Controller
 {
@@ -18,12 +19,18 @@ class DashboardController extends Controller
 
         $visitQuery = PatientVisit::query();
 
+        $prescriptionQuery = PatientPrescription::query();
+
         if ($user->role !== 'admin') {
             $visitQuery->where('doctor_id', $user->id);
         }
 
         if ($user->role !== 'admin') {
             $patientQuery->where('doctor_id', $user->id);
+        }
+
+        if ($user->role !== 'admin') {
+            $prescriptionQuery->where('doctor_id', $user->id);
         }
 
         return response()->json([
@@ -39,7 +46,7 @@ class DashboardController extends Controller
                     'total_patients' => $patientQuery->count(),
                     'today_visits' => (clone $visitQuery)->whereDate('visit_date', now()->toDateString())->count(),
                     'pending_followups' => 0,
-                    'prescriptions_saved' => 0,
+                    'prescriptions_saved' => $prescriptionQuery->count(),
                 ],
 
                 'clinical_workflow' => [

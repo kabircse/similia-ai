@@ -4,8 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PatientVisit extends Model
 {
@@ -53,5 +54,10 @@ class PatientVisit extends Model
     public function repertorizationRuns(): HasMany
     {
         return $this->hasMany(RepertorizationRun::class);
+    }
+
+    public function prescription(): HasOne
+    {
+        return $this->hasOne(PatientPrescription::class);
     }
 }
