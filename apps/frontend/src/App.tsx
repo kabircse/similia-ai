@@ -6,6 +6,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { PatientsPage } from "./pages/PatientsPage";
 import { PatientFormPage } from "./pages/PatientFormPage";
 import { PatientDetailPage } from "./pages/PatientDetailPage";
+import { VisitFormPage } from "./pages/VisitFormPage";
+import { VisitDetailPage } from "./pages/VisitDetailPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -72,6 +74,39 @@ function App() {
           <ProtectedLayout>
             <PatientFormPage />
           </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/new"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <VisitFormPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/:visitId"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <VisitDetailPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/:visitId/edit"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <VisitFormPage />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 

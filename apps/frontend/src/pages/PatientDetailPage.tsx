@@ -1,14 +1,37 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router";
-import { useQuery } from "@tanstack/react-query";
-import { getPatient } from "../lib/api";
+import { deletePatientVisit, getPatient, getPatientVisits } from "../lib/api";
 
 export function PatientDetailPage() {
   const { patientId } = useParams();
+  const queryClient = useQueryClient();
 
-  const { data: patient, isLoading, isError } = useQuery({
+  const {
+    data: patient,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["patients", patientId],
     queryFn: () => getPatient(patientId as string),
     enabled: Boolean(patientId),
+  });
+
+  const visitsQuery = useQuery({
+    queryKey: ["patients", patientId, "visits"],
+    queryFn: () => getPatientVisits(patientId as string),
+    enabled: Boolean(patientId),
+  });
+
+  const deleteVisitMutation = useMutation({
+    mutationFn: (visitId: number) => deletePatientVisit(patientId as string, visitId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "visits"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["dashboard", "overview"],
+      });
+    },
   });
 
   if (isLoading) {
@@ -88,11 +111,56 @@ export function PatientDetailPage() {
         </article>
 
         <article className="panel full-panel">
-          <h3>Clinical Timeline</h3>
-          <p className="empty-state">
-            Visits, case-taking, prescriptions, fee records, and follow-ups will
-            appear here after upcoming issues.
-          </p>
+          <div className="panel-heading panel-heading-between">
+            <h3>Clinical Timeline</h3>
+            <Link to={`/patients/${patient.id}/visits/new`} className="primary-link">
+              New Visit
+            </Link>
+          </div>
+
+          {visitsQuery.isLoading && <p className="empty-state">Loading visits...</p>}
+
+          {!visitsQuery.isLoading && visitsQuery.data?.data.length === 0 && (
+            <p className="empty-state">
+              No visits yet. Create the first visit to start case-taking.
+            </p>
+          )}
+
+          {visitsQuery.data && visitsQuery.data.data.length > 0 && (
+            <div className="timeline-list">
+              {visitsQuery.data.data.map((visit) => (
+                <div className="timeline-item" key={visit.id}>
+                  <div>
+                    <Link
+                      to={`/patients/${patient.id}/visits/${visit.id}`}
+                      className="patient-name"
+                    >
+                      {visit.visit_date} — {visit.visit_type.replace("_", " ")}
+                    </Link>
+                    <p>{visit.chief_complaint || "No chief complaint added."}</p>
+                    <span className={`status-pill ${visit.status}`}>{visit.status}</span>
+                  </div>
+
+                  <div className="table-actions">
+                    <Link to={`/patients/${patient.id}/visits/${visit.id}/edit`}>
+                      Edit
+                    </Link>
+                    <button
+                      className="danger-button"
+                      onClick={() => {
+                        if (confirm("Delete this visit?")) {
+                          deleteVisitMutation.mutate(visit.id);
+                        }
+                      }}
+                      disabled={deleteVisitMutation.isPending}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </article>
       </section>
     </div>
