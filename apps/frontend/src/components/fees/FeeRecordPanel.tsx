@@ -108,6 +108,10 @@ function FeeForm({
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "fee"],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
     },
   });
 
@@ -118,6 +122,10 @@ function FeeForm({
 
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "fee"],
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
       });
     },
   });

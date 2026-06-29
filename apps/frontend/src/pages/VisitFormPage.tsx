@@ -117,6 +117,7 @@ export function VisitFormPage() {
         : createPatientVisit(patientId as string, form),
     onSuccess: async (visit) => {
       await queryClient.invalidateQueries({ queryKey: ["patients", patientId, "visits"] });
+      await queryClient.invalidateQueries({ queryKey: ["patients", patientId, "timeline"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
       navigate(`/patients/${patientId}/visits/${visit.id}`);
     },

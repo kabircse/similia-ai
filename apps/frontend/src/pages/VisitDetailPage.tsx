@@ -36,6 +36,7 @@ export function VisitDetailPage() {
     mutationFn: () => deletePatientVisit(patientId as string, visitId as string),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["patients", patientId, "visits"] });
+      await queryClient.invalidateQueries({ queryKey: ["patients", patientId, "timeline"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
       navigate(`/patients/${patientId}`);
     },

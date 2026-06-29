@@ -85,6 +85,10 @@ function PrescriptionForm({
       });
 
       await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
+
+      await queryClient.invalidateQueries({
         queryKey: ["dashboard", "overview"],
       });
     },
@@ -97,6 +101,10 @@ function PrescriptionForm({
 
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "prescription"],
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
       });
 
       await queryClient.invalidateQueries({

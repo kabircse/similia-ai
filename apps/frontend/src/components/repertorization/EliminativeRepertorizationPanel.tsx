@@ -48,6 +48,10 @@ export function EliminativeRepertorizationPanel({
           "eliminative",
         ],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
     },
   });
 

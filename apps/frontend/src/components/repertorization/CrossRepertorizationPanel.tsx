@@ -48,6 +48,10 @@ export function CrossRepertorizationPanel({
           "cross",
         ],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
     },
   });
 

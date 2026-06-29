@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router";
 import { deletePatientVisit, getPatient, getPatientVisits } from "../lib/api";
+import { PatientTimelinePanel } from "../components/timeline/PatientTimelinePanel";
 
 export function PatientDetailPage() {
   const { patientId } = useParams();
@@ -29,6 +30,9 @@ export function PatientDetailPage() {
         queryKey: ["patients", patientId, "visits"],
       });
       await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
+      await queryClient.invalidateQueries({
         queryKey: ["dashboard", "overview"],
       });
     },
@@ -48,10 +52,7 @@ export function PatientDetailPage() {
         <div>
           <p className="eyebrow">Patient Profile</p>
           <h1>{patient.name}</h1>
-          <p>
-            Basic patient information. Visits and clinical timeline will be
-            connected in upcoming issues.
-          </p>
+          <p>Patient details, complete timeline, and visit records.</p>
         </div>
 
         <div className="header-actions">
@@ -110,9 +111,11 @@ export function PatientDetailPage() {
           <p className="notes-text">{patient.notes || "No notes added."}</p>
         </article>
 
+        {patientId && <PatientTimelinePanel patientId={patientId} />}
+
         <article className="panel full-panel">
           <div className="panel-heading panel-heading-between">
-            <h3>Clinical Timeline</h3>
+            <h3>Visits</h3>
             <Link to={`/patients/${patient.id}/visits/new`} className="primary-link">
               New Visit
             </Link>

@@ -59,6 +59,10 @@ export function VisitRubricsPanel({ patientId, visitId }: VisitRubricsPanelProps
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "rubrics"],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
     },
   });
 
@@ -74,6 +78,10 @@ export function VisitRubricsPanel({ patientId, visitId }: VisitRubricsPanelProps
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "rubrics"],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
     },
   });
 
@@ -83,6 +91,10 @@ export function VisitRubricsPanel({ patientId, visitId }: VisitRubricsPanelProps
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "rubrics"],
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
       });
     },
   });
