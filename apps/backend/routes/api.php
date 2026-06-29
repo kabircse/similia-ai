@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientFeeController;
 use App\Http\Controllers\Api\PatientPrescriptionController;
+use App\Http\Controllers\Api\PatientTimelineController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
 use App\Http\Controllers\Api\RepertorizationController;
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::apiResource('patients', PatientController::class);
+    Route::get('/patients/{patient}/timeline', [PatientTimelineController::class, 'index']);
     Route::apiResource('patients.visits', PatientVisitController::class);
     Route::post(
         '/patients/{patient}/visits/{visit}/structure-case',

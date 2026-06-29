@@ -289,6 +289,106 @@ export async function deletePatientVisit(
   return response.data;
 }
 
+export type PatientTimelineRubric = {
+  rubric_path: string | null;
+  symptom_type: string;
+  importance: string;
+  weight: number;
+  is_essential: boolean;
+};
+
+export type PatientTimelineTopResult = {
+  rank: number;
+  remedy_code: string;
+  remedy_name: string;
+  total_score: number;
+  rubric_coverage: number;
+  essential_coverage: number;
+};
+
+export type PatientTimelineRun = {
+  id: number;
+  method: string;
+  created_at: string | null;
+  top_results: PatientTimelineTopResult[];
+};
+
+export type PatientTimelineItem = {
+  id: string;
+  type: "visit";
+  date: string | null;
+  title: string;
+
+  visit: {
+    id: number;
+    visit_date: string | null;
+    visit_type: string;
+    status: string;
+    case_source: string;
+    chief_complaint: string | null;
+    doctor_notes: string | null;
+    next_follow_up_date: string | null;
+  };
+
+  case_summary: {
+    rubrics_count: number;
+    essential_rubrics_count: number;
+    selected_rubrics: PatientTimelineRubric[];
+  };
+
+  repertorization: PatientTimelineRun[];
+
+  prescription: {
+    id: number;
+    remedy_code: string | null;
+    remedy_name: string;
+    potency: string;
+    repetition: string | null;
+    follow_up_date: string | null;
+    status: string;
+  } | null;
+
+  fee: {
+    id: number;
+    currency: string;
+    total_amount: string;
+    paid_amount: string;
+    due_amount: string;
+    payment_status: string;
+    payment_method: string | null;
+    payment_date: string | null;
+  } | null;
+};
+
+export type PatientTimelineResponse = {
+  data: PatientTimelineItem[];
+  meta: {
+    patient: {
+      id: number;
+      name: string;
+      age_years: number | null;
+      gender: string | null;
+      phone: string | null;
+    };
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getPatientTimeline(
+  patientId: string | number
+): Promise<PatientTimelineResponse> {
+  const response = await api.get(`/api/patients/${patientId}/timeline`, {
+    params: {
+      per_page: 20,
+    },
+  });
+
+  return response.data;
+}
+
 export async function structurePatientVisit(
   patientId: string | number,
   visitId: string | number,

@@ -102,6 +102,10 @@ export function WeightedRepertorizationPanel({
       await queryClient.invalidateQueries({
         queryKey: ["patients", patientId, "visits", visitId, "repertorization-runs"],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "timeline"],
+      });
     },
   });
 
