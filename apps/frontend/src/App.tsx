@@ -8,6 +8,8 @@ import { PatientFormPage } from "./pages/PatientFormPage";
 import { PatientDetailPage } from "./pages/PatientDetailPage";
 import { VisitFormPage } from "./pages/VisitFormPage";
 import { VisitDetailPage } from "./pages/VisitDetailPage";
+import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
+import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -106,6 +108,24 @@ function App() {
             <DashboardLayout>
               <VisitFormPage />
             </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/:visitId/print/case-sheet"
+        element={
+          <ProtectedRoute>
+            <CaseSheetPrintPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/:visitId/print/prescription"
+        element={
+          <ProtectedRoute>
+            <PrescriptionPrintPage />
           </ProtectedRoute>
         }
       />

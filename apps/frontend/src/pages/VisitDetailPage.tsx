@@ -83,6 +83,18 @@ export function VisitDetailPage() {
           <Link to={`/patients/${patientId}`} className="secondary-link">
             Back
           </Link>
+          <Link
+            to={`/patients/${patientId}/visits/${visit.id}/print/case-sheet`}
+            className="secondary-link"
+          >
+            Print Case Sheet
+          </Link>
+          <Link
+            to={`/patients/${patientId}/visits/${visit.id}/print/prescription`}
+            className="secondary-link"
+          >
+            Print Prescription
+          </Link>
           <button
             className="primary-button inline-button"
             onClick={() => structureMutation.mutate()}
@@ -199,7 +211,7 @@ export function VisitDetailPage() {
         <h3>Next Steps</h3>
         <p className="empty-state">
           AI case structuring, rubric suggestion, repertorization, prescription,
-          fee, and print modules will connect to this visit in upcoming issues.
+          and fee modules are connected to this visit.
         </p>
       </section>
     </div>

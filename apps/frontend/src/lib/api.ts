@@ -761,3 +761,142 @@ export async function deleteVisitFee(
 
   return response.data;
 }
+
+export type PrintPatient = {
+  id: number;
+  name: string;
+  age_years: number | null;
+  gender: string | null;
+  phone: string | null;
+  address: string | null;
+  occupation?: string | null;
+  marital_status?: string | null;
+  emergency_contact?: string | null;
+  notes?: string | null;
+};
+
+export type PrintDoctor = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+};
+
+export type PrintClinic = {
+  name: string;
+  tagline: string | null;
+  phone: string | null;
+  address: string | null;
+};
+
+export type PrintVisit = {
+  id: number;
+  visit_date: string | null;
+  visit_type?: string;
+  status?: string;
+  case_source?: string;
+  chief_complaint: string | null;
+  raw_case_text?: string | null;
+  case_sections?: Record<string, string>;
+  missing_questions?: string[];
+  red_flags?: string[];
+  doctor_notes?: string | null;
+  next_follow_up_date?: string | null;
+};
+
+export type PrintPrescription = {
+  remedy_code?: string | null;
+  remedy_name: string;
+  potency: string;
+  repetition: string | null;
+  dose_instruction: string | null;
+  reason?: string | null;
+  advice: string | null;
+  food_lifestyle_note: string | null;
+  follow_up_date: string | null;
+  status: string;
+};
+
+export type PrintRubric = {
+  id: number;
+  rubric_path: string | null;
+  symptom_type: string;
+  importance: string;
+  weight: number;
+  is_essential: boolean;
+  note: string | null;
+};
+
+export type PrintRepertorizationRun = {
+  id: number;
+  method: string;
+  total_rubrics: number;
+  essential_rubrics_count: number;
+  results: Array<{
+    rank: number;
+    remedy_code: string;
+    remedy_name: string;
+    total_score: number;
+    rubric_coverage: number;
+    essential_coverage: number;
+  }>;
+};
+
+export type PrintFee = {
+  currency: string;
+  consultation_fee: string;
+  medicine_fee: string;
+  discount_amount: string;
+  total_amount: string;
+  paid_amount: string;
+  due_amount: string;
+  payment_method: string | null;
+  payment_status: string;
+  payment_date: string | null;
+  note: string | null;
+};
+
+export type CaseSheetPrintData = {
+  document_type: "doctor_case_sheet";
+  generated_at: string;
+  clinic: PrintClinic;
+  doctor: PrintDoctor;
+  patient: PrintPatient;
+  visit: PrintVisit;
+  rubrics: PrintRubric[];
+  repertorization_runs: PrintRepertorizationRun[];
+  prescription: PrintPrescription | null;
+  fee: PrintFee | null;
+};
+
+export type PrescriptionPrintData = {
+  document_type: "patient_prescription";
+  generated_at: string;
+  clinic: PrintClinic;
+  doctor: PrintDoctor;
+  patient: PrintPatient;
+  visit: PrintVisit;
+  prescription: PrintPrescription | null;
+};
+
+export async function getCaseSheetPrintData(
+  patientId: string | number,
+  visitId: string | number
+): Promise<CaseSheetPrintData> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/print/case-sheet`
+  );
+
+  return response.data.data;
+}
+
+export async function getPrescriptionPrintData(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PrescriptionPrintData> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/print/prescription`
+  );
+
+  return response.data.data;
+}

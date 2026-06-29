@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
 use App\Http\Controllers\Api\RepertorizationController;
 use App\Http\Controllers\Api\RepertoryRubricController;
+use App\Http\Controllers\Api\VisitPrintController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -42,6 +43,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get(
         '/patients/{patient}/visits/{visit}/repertorization-runs',
         [RepertorizationController::class, 'index']
+    );
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/print/case-sheet',
+        [VisitPrintController::class, 'caseSheet']
+    );
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/print/prescription',
+        [VisitPrintController::class, 'prescription']
     );
 
     Route::get(
