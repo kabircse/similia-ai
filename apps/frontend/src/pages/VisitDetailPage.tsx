@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deletePatientVisit,
@@ -6,8 +6,8 @@ import {
   getPatientVisit,
   structurePatientVisit,
 } from "../lib/api";
-import { useNavigate } from "react-router";
 import { Brain } from "lucide-react";
+import { VisitRubricsPanel } from "../components/rubrics/VisitRubricsPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -155,6 +155,10 @@ export function VisitDetailPage() {
           ))}
         </div>
       </section>
+
+      {patientId && visitId && (
+        <VisitRubricsPanel patientId={patientId} visitId={visitId} />
+      )}
 
       <section className="panel">
         <h3>Doctor Notes</h3>

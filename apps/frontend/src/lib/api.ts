@@ -303,3 +303,103 @@ export async function structurePatientVisit(
 
   return response.data.data;
 }
+
+export type RepertoryRubric = {
+  id: number;
+  source: string;
+  chapter: string | null;
+  rubric_path: string;
+  rubric_text: string;
+  page: number | null;
+  remedies_count?: number;
+};
+
+export type CaseRubric = {
+  id: number;
+  patient_visit_id: number;
+  repertory_rubric_id: number;
+  doctor_id: number;
+  symptom_type: string;
+  importance: string;
+  weight: number;
+  is_essential: boolean;
+  note: string | null;
+  rubric: RepertoryRubric;
+};
+
+export type RubricSearchResponse = {
+  data: RepertoryRubric[];
+};
+
+export type CaseRubricListResponse = {
+  data: CaseRubric[];
+};
+
+export type CaseRubricInput = {
+  repertory_rubric_id: number;
+  symptom_type: string;
+  importance: string;
+  weight: number;
+  is_essential: boolean;
+  note: string;
+};
+
+export async function searchRepertoryRubrics(
+  search: string
+): Promise<RubricSearchResponse> {
+  const response = await api.get("/api/repertory/rubrics", {
+    params: {
+      search,
+      per_page: 20,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getVisitRubrics(
+  patientId: string | number,
+  visitId: string | number
+): Promise<CaseRubricListResponse> {
+  const response = await api.get(`/api/patients/${patientId}/visits/${visitId}/rubrics`);
+  return response.data;
+}
+
+export async function addVisitRubric(
+  patientId: string | number,
+  visitId: string | number,
+  input: CaseRubricInput
+): Promise<CaseRubric> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/rubrics`,
+    input
+  );
+
+  return response.data.data;
+}
+
+export async function updateVisitRubric(
+  patientId: string | number,
+  visitId: string | number,
+  caseRubricId: string | number,
+  input: CaseRubricInput
+): Promise<CaseRubric> {
+  const response = await api.patch(
+    `/api/patients/${patientId}/visits/${visitId}/rubrics/${caseRubricId}`,
+    input
+  );
+
+  return response.data.data;
+}
+
+export async function deleteVisitRubric(
+  patientId: string | number,
+  visitId: string | number,
+  caseRubricId: string | number
+) {
+  const response = await api.delete(
+    `/api/patients/${patientId}/visits/${visitId}/rubrics/${caseRubricId}`
+  );
+
+  return response.data;
+}
