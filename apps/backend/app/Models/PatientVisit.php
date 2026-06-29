@@ -49,4 +49,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(CaseRubric::class);
     }
+
+    public function repertorizationRuns(): HasMany
+    {
+        return $this->hasMany(RepertorizationRun::class);
+    }
 }
