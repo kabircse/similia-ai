@@ -5,7 +5,6 @@ import {
   Clock,
   FileText,
   ClipboardList,
-  Search,
 } from "lucide-react";
 import { getDashboardOverview } from "../lib/api";
 import { Link } from "react-router";
@@ -45,9 +44,8 @@ export function DashboardPage() {
           <p className="eyebrow">Welcome back</p>
           <h1>Dr. {data.doctor.name}</h1>
           <p>
-            Start with patient registration, structured case-taking, rubrics,
-            repertorization, materia medica comparison, and doctor-approved
-            prescription.
+            Run the full clinical workflow from patient record to timeline,
+            repertorization, prescription, fee, and printable documents.
           </p>
         </div>
 
@@ -55,10 +53,9 @@ export function DashboardPage() {
           <Link to="/patients/new" className="primary-link">
             New Patient
           </Link>
-          <button className="secondary-button" disabled>
-            New Case
-          </button>
-          <span className="hint">Enabled in Issue #5 and #6</span>
+          <Link to="/patients" className="secondary-link">
+            View Patients
+          </Link>
         </div>
       </section>
 
@@ -106,32 +103,54 @@ export function DashboardPage() {
 
         <article className="panel">
           <div className="panel-heading">
-            <Search size={20} />
-            <h3>Next Build Focus</h3>
+            <FileText size={20} />
+            <h3>Demo Walkthrough</h3>
           </div>
 
           <div className="next-list">
-            
+            {[
+              ["Open Demo Patient", "Review the constitutional case timeline."],
+              ["Open Demo Visit", "Show rubrics, repertorization, prescription, and fee."],
+              ["Print Documents", "Open case sheet and prescription print pages."],
+            ].map(([title, description], index) => (
+              <div className="next-item" key={title}>
+                <div className="step-number">{index + 1}</div>
+                <div>
+                  <h4>{title}</h4>
+                  <p>{description}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </article>
       </section>
 
       <section className="panel">
         <div className="panel-heading">
-          <Clock size={20} />
-          <h3>Recent Activity</h3>
+          <div>
+            <h3>Recent Activity</h3>
+            <p className="panel-subtitle">
+              Latest visits, prescriptions, and fee records.
+            </p>
+          </div>
         </div>
 
         {data.recent_activity.length === 0 ? (
-          <p className="empty-state">
-            No clinical activity yet. 
-          </p>
+          <p className="empty-state">No recent activity yet.</p>
         ) : (
-          <div>
-            {data.recent_activity.map((activity) => (
-              <div key={activity.title} className="activity-item">
-                <h4>{activity.title}</h4>
-                <p>{activity.description}</p>
+          <div className="activity-list">
+            {data.recent_activity.map((activity, index) => (
+              <div className="activity-item" key={`${activity.type}-${index}`}>
+                <div>
+                  <strong>{activity.title}</strong>
+                  <p>{activity.description}</p>
+                </div>
+
+                <span>
+                  {activity.created_at
+                    ? new Date(activity.created_at).toLocaleDateString()
+                    : ""}
+                </span>
               </div>
             ))}
           </div>

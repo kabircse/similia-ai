@@ -180,6 +180,33 @@ button:disabled {
   font-size: 14px;
 }
 
+.demo-credentials {
+  border: 1px solid #d9e8ff;
+  background: #f7fbff;
+  color: #42526b;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.demo-credentials strong {
+  color: #102018;
+}
+
+.error-debug {
+  background: #fff8f8;
+  border: 1px solid #ffd3d3;
+  color: #a32121;
+  padding: 12px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  font-size: 13px;
+}
+
 /* Dashboard Layout */
 
 .dashboard-shell {
@@ -459,13 +486,35 @@ button:disabled {
   color: #145c43;
 }
 
-.activity-item {
-  padding: 14px 0;
-  border-bottom: 1px solid #edf0eb;
+.activity-list {
+  display: grid;
+  gap: 12px;
 }
 
-.activity-item:last-child {
-  border-bottom: none;
+.activity-item {
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.activity-item strong {
+  color: #102018;
+}
+
+.activity-item p {
+  margin: 5px 0 0;
+  color: #526052;
+}
+
+.activity-item span {
+  color: #708074;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 /* Responsive */
@@ -515,6 +564,10 @@ button:disabled {
   .status-pill {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .activity-item {
+    flex-direction: column;
   }
 }
 
@@ -870,6 +923,11 @@ button:disabled {
 }
 
 .status-pill.completed {
+  background: #edf6ef;
+  color: #145c43;
+}
+
+.status-pill.available {
   background: #edf6ef;
   color: #145c43;
 }

@@ -30,9 +30,10 @@ export type DashboardOverview = {
     status: string;
   }>;
   recent_activity: Array<{
+    type: string;
     title: string;
     description: string;
-    created_at: string;
+    created_at: string | null;
   }>;
 };
 
