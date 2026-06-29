@@ -403,3 +403,90 @@ export async function deleteVisitRubric(
 
   return response.data;
 }
+
+export type SupportingRubric = {
+  case_rubric_id: number;
+  repertory_rubric_id: number;
+  rubric_path: string;
+  rubric_text: string;
+  symptom_type: string;
+  importance: string;
+  is_essential: boolean;
+  rubric_weight: number;
+  remedy_grade: number;
+  score: number;
+};
+
+export type MissingImportantRubric = {
+  case_rubric_id: number;
+  repertory_rubric_id: number | null;
+  rubric_path: string | null;
+  importance: string;
+  is_essential: boolean;
+  weight: number;
+};
+
+export type RepertorizationResult = {
+  id: number;
+  repertorization_run_id: number;
+  remedy_code: string;
+  remedy_name: string;
+  total_score: number;
+  rubric_coverage: number;
+  essential_coverage: number;
+  rank: number;
+  supporting_rubrics: SupportingRubric[];
+  missing_important_rubrics: MissingImportantRubric[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type RepertorizationRun = {
+  id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  method: "weighted" | string;
+  total_rubrics: number;
+  essential_rubrics_count: number;
+  settings: Record<string, unknown>;
+  selected_rubrics_snapshot: unknown[];
+  results: RepertorizationResult[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type RepertorizationRunListResponse = {
+  data: RepertorizationRun[];
+};
+
+export async function getRepertorizationRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RepertorizationRunListResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/repertorization-runs`,
+    {
+      params: {
+        per_page: 10,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function runWeightedRepertorization(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RepertorizationRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/repertorize/weighted`,
+    {
+      settings: {
+        limit: 50,
+      },
+    }
+  );
+
+  return response.data.data;
+}
