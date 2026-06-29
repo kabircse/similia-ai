@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PatientVisitController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\RepertoryRubricController;
+use App\Http\Controllers\Api\RepertorizationController;
 
 Route::get('/health', function () {
     return response()->json([
@@ -35,6 +36,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/patients/{patient}/visits/{visit}/rubrics', [CaseRubricController::class, 'store']);
     Route::patch('/patients/{patient}/visits/{visit}/rubrics/{caseRubric}', [CaseRubricController::class, 'update']);
     Route::delete('/patients/{patient}/visits/{visit}/rubrics/{caseRubric}', [CaseRubricController::class, 'destroy']);
+    Route::get(
+        '/patients/{patient}/visits/{visit}/repertorization-runs',
+        [RepertorizationController::class, 'index']
+    );
+    
+    Route::get(
+        '/patients/{patient}/visits/{visit}/repertorization-runs/{run}',
+        [RepertorizationController::class, 'show']
+    );
+    
+    Route::post(
+        '/patients/{patient}/visits/{visit}/repertorize/weighted',
+        [RepertorizationController::class, 'runWeighted']
+    );
 
     Route::get('/dashboard', function () {
         return response()->json([
