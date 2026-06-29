@@ -13,6 +13,7 @@ import { CrossRepertorizationPanel } from "../components/repertorization/CrossRe
 import { EliminativeRepertorizationPanel } from "../components/repertorization/EliminativeRepertorizationPanel";
 import { MateriaMedicaComparisonPanel } from "../components/materia-medica/MateriaMedicaComparisonPanel";
 import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel";
+import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -183,6 +184,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <PrescriptionPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <FeeRecordPanel patientId={patientId} visitId={visitId} />
       )}
 
       <section className="panel">

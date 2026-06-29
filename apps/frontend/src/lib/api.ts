@@ -666,3 +666,98 @@ export async function deleteVisitPrescription(
 
   return response.data;
 }
+
+export type PaymentMethod =
+  | "cash"
+  | "bkash"
+  | "nagad"
+  | "card"
+  | "bank"
+  | "other";
+
+export type PatientFee = {
+  id: number;
+
+  patient_visit_id: number;
+  patient_id: number;
+  doctor_id: number;
+
+  currency: string;
+
+  consultation_fee: string;
+  medicine_fee: string;
+  discount_amount: string;
+  total_amount: string;
+  paid_amount: string;
+  due_amount: string;
+
+  payment_method: PaymentMethod | null;
+  payment_status: "unpaid" | "partial" | "paid";
+  payment_date: string | null;
+
+  note: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type FeeInput = {
+  currency: string;
+  consultation_fee: string;
+  medicine_fee: string;
+  discount_amount: string;
+  paid_amount: string;
+  payment_method: string;
+  payment_date: string;
+  note: string;
+};
+
+function normalizeFeeInput(input: FeeInput) {
+  return {
+    currency: input.currency || "BDT",
+    consultation_fee:
+      input.consultation_fee === "" ? 0 : Number(input.consultation_fee),
+    medicine_fee: input.medicine_fee === "" ? 0 : Number(input.medicine_fee),
+    discount_amount:
+      input.discount_amount === "" ? 0 : Number(input.discount_amount),
+    paid_amount: input.paid_amount === "" ? 0 : Number(input.paid_amount),
+    payment_method: input.payment_method || null,
+    payment_date: input.payment_date || null,
+    note: input.note || null,
+  };
+}
+
+export async function getVisitFee(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientFee | null> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/fee`
+  );
+
+  return response.data.data;
+}
+
+export async function saveVisitFee(
+  patientId: string | number,
+  visitId: string | number,
+  input: FeeInput
+): Promise<PatientFee> {
+  const response = await api.put(
+    `/api/patients/${patientId}/visits/${visitId}/fee`,
+    normalizeFeeInput(input)
+  );
+
+  return response.data.data;
+}
+
+export async function deleteVisitFee(
+  patientId: string | number,
+  visitId: string | number
+) {
+  const response = await api.delete(
+    `/api/patients/${patientId}/visits/${visitId}/fee`
+  );
+
+  return response.data;
+}

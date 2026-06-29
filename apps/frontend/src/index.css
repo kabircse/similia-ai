@@ -1318,3 +1318,81 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.fee-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.fee-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.fee-form input,
+.fee-form select,
+.fee-form textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+}
+
+.fee-form input:focus,
+.fee-form select:focus,
+.fee-form textarea:focus {
+  border-color: #145c43;
+  box-shadow: 0 0 0 3px rgba(20, 92, 67, 0.12);
+}
+
+.fee-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fee-summary div {
+  border: 1px solid #edf0eb;
+  border-radius: 14px;
+  background: #fbfcfa;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.fee-summary span {
+  color: #708074;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.fee-summary strong {
+  font-size: 20px;
+}
+
+.fee-status {
+  text-transform: capitalize;
+}
+
+.fee-status.paid {
+  color: #145c43;
+}
+
+.fee-status.partial {
+  color: #8a5a00;
+}
+
+.fee-status.unpaid {
+  color: #a32121;
+}
+
+@media (max-width: 920px) {
+  .fee-form,
+  .fee-summary {
+    grid-template-columns: 1fr;
+  }
+}
