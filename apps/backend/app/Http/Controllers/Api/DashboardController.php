@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Patient;
+use App\Models\PatientFee;
 use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
 use Illuminate\Http\JsonResponse;
@@ -23,15 +24,56 @@ class DashboardController extends Controller
 
         if ($user->role !== 'admin') {
             $visitQuery->where('doctor_id', $user->id);
-        }
-
-        if ($user->role !== 'admin') {
             $patientQuery->where('doctor_id', $user->id);
-        }
-
-        if ($user->role !== 'admin') {
             $prescriptionQuery->where('doctor_id', $user->id);
         }
+
+        $recentVisitQuery = PatientVisit::query()
+            ->with('patient')
+            ->latest();
+
+        $recentPrescriptionQuery = PatientPrescription::query()
+            ->with('patient')
+            ->latest();
+
+        $recentFeeQuery = PatientFee::query()
+            ->with('patient')
+            ->latest();
+
+        if ($user->role !== 'admin') {
+            $recentVisitQuery->where('doctor_id', $user->id);
+            $recentPrescriptionQuery->where('doctor_id', $user->id);
+            $recentFeeQuery->where('doctor_id', $user->id);
+        }
+
+        $recentActivity = collect()
+            ->merge(
+                $recentVisitQuery->limit(5)->get()->map(fn ($visit) => [
+                    'type' => 'visit',
+                    'title' => 'Visit created',
+                    'description' => ($visit->patient?->name ?? 'Patient').' - '.($visit->chief_complaint ?: 'No complaint added'),
+                    'created_at' => $visit->created_at?->toISOString(),
+                ])
+            )
+            ->merge(
+                $recentPrescriptionQuery->limit(5)->get()->map(fn ($prescription) => [
+                    'type' => 'prescription',
+                    'title' => 'Prescription saved',
+                    'description' => ($prescription->patient?->name ?? 'Patient').' - '.$prescription->remedy_name.' '.$prescription->potency,
+                    'created_at' => $prescription->created_at?->toISOString(),
+                ])
+            )
+            ->merge(
+                $recentFeeQuery->limit(5)->get()->map(fn ($fee) => [
+                    'type' => 'fee',
+                    'title' => 'Fee recorded',
+                    'description' => ($fee->patient?->name ?? 'Patient').' - '.$fee->currency.' '.$fee->total_amount.' / '.$fee->payment_status,
+                    'created_at' => $fee->created_at?->toISOString(),
+                ])
+            )
+            ->sortByDesc('created_at')
+            ->take(8)
+            ->values();
 
         return response()->json([
             'data' => [
@@ -45,7 +87,10 @@ class DashboardController extends Controller
                 'summary' => [
                     'total_patients' => $patientQuery->count(),
                     'today_visits' => (clone $visitQuery)->whereDate('visit_date', now()->toDateString())->count(),
-                    'pending_followups' => 0,
+                    'pending_followups' => (clone $visitQuery)
+                        ->whereNotNull('next_follow_up_date')
+                        ->whereDate('next_follow_up_date', '>=', now()->toDateString())
+                        ->count(),
                     'prescriptions_saved' => $prescriptionQuery->count(),
                 ],
 
@@ -58,31 +103,31 @@ class DashboardController extends Controller
                     [
                         'title' => 'Take Case',
                         'description' => 'Add manual or AI-assisted case-taking notes.',
-                        'status' => 'coming_next',
+                        'status' => 'available',
                     ],
                     [
                         'title' => 'Select Rubrics',
                         'description' => 'Search and select repertory rubrics.',
-                        'status' => 'planned',
+                        'status' => 'available',
                     ],
                     [
                         'title' => 'Repertorize',
                         'description' => 'Run weighted, cross, or eliminative repertorization.',
-                        'status' => 'planned',
+                        'status' => 'available',
                     ],
                     [
                         'title' => 'Compare Remedies',
                         'description' => 'Use materia medica RAG for remedy comparison.',
-                        'status' => 'planned',
+                        'status' => 'available',
                     ],
                     [
                         'title' => 'Save Prescription',
                         'description' => 'Save doctor-approved remedy, potency, and follow-up.',
-                        'status' => 'planned',
+                        'status' => 'available',
                     ],
                 ],
 
-                'recent_activity' => [],
+                'recent_activity' => $recentActivity,
             ],
         ]);
     }

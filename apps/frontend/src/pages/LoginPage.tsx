@@ -33,6 +33,12 @@ export function LoginPage() {
           <p>Doctor Workspace Login</p>
         </div>
 
+        <div className="demo-credentials">
+          <strong>Demo Login</strong>
+          <span>doctor@similia.test</span>
+          <span>password</span>
+        </div>
+
         <form onSubmit={handleSubmit} className="login-form">
           <label>
             Email
@@ -64,10 +70,6 @@ export function LoginPage() {
             {loginMutation.isPending ? "Signing in..." : "Sign in"}
           </button>
         </form>
-
-        <div className="demo-note">
-          <strong>Demo:</strong> doctor@similia.test / password
-        </div>
       </section>
     </main>
   );

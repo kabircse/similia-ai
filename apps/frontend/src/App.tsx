@@ -10,6 +10,7 @@ import { VisitFormPage } from "./pages/VisitFormPage";
 import { VisitDetailPage } from "./pages/VisitDetailPage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -148,6 +149,8 @@ function App() {
           }
         />
       ))}
+
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
