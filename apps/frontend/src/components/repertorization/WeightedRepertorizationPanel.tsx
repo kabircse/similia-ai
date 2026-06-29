@@ -92,8 +92,8 @@ export function WeightedRepertorizationPanel({
   });
 
   const runsQuery = useQuery({
-    queryKey: ["patients", patientId, "visits", visitId, "repertorization-runs"],
-    queryFn: () => getRepertorizationRuns(patientId, visitId),
+    queryKey: ["patients", patientId, "visits", visitId, "repertorization-runs", "weighted"],
+    queryFn: () => getRepertorizationRuns(patientId, visitId, "weighted"),
   });
 
   const runMutation = useMutation({

@@ -8,6 +8,7 @@ use App\Http\Resources\RepertorizationRunResource;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
+use App\Services\Repertorization\CrossRepertorizationEngine;
 use App\Services\Repertorization\WeightedRepertorizationEngine;
 use Illuminate\Http\Request;
 
@@ -17,9 +18,12 @@ class RepertorizationController extends Controller
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
+        $method = $request->query('method');
+
         $runs = RepertorizationRun::query()
             ->with(['results' => fn ($query) => $query->orderBy('rank')])
             ->where('patient_visit_id', $visit->id)
+            ->when($method, fn($query) => $query->where('method', $method))
             ->latest()
             ->paginate($request->integer('per_page', 10));
 
@@ -44,6 +48,23 @@ class RepertorizationController extends Controller
         Patient $patient,
         PatientVisit $visit,
         WeightedRepertorizationEngine $engine
+    ): RepertorizationRunResource {
+        $this->ensureCanAccessVisit($request, $patient, $visit);
+
+        $run = $engine->run(
+            visit: $visit,
+            doctor: $request->user(),
+            settings: $request->validated('settings') ?? []
+        );
+
+        return new RepertorizationRunResource($run->load('results'));
+    }
+
+    public function runCross(
+        RunWeightedRepertorizationRequest $request,
+        Patient $patient,
+        PatientVisit $visit,
+        CrossRepertorizationEngine $engine
     ): RepertorizationRunResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
