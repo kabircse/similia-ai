@@ -45,6 +45,48 @@ class CaseStructureData(BaseModel):
     engine: str
 
 
+class RemedyCandidate(BaseModel):
+    remedy_code: str
+    remedy_name: str
+    rank: int
+    total_score: int
+    rubric_coverage: int
+    essential_coverage: int
+
+
+class KnowledgeChunk(BaseModel):
+    remedy_code: str
+    remedy_name: str
+    section: Optional[str] = None
+    content: str
+    source_title: Optional[str] = None
+    distance: Optional[float] = None
+
+
+class MateriaMedicaCompareRequest(BaseModel):
+    case_summary: str
+    candidates: List[RemedyCandidate]
+    chunks: List[KnowledgeChunk]
+
+
+class RemedyComparisonItem(BaseModel):
+    remedy_code: str
+    remedy_name: str
+    rank: int
+    total_score: int
+    matching_points: List[str]
+    differentiating_points: List[str]
+    missing_questions: List[str]
+    source_chunks: List[Dict[str, Any]]
+
+
+class MateriaMedicaCompareResponse(BaseModel):
+    summary: str
+    remedies: List[RemedyComparisonItem]
+    safety_note: str
+    engine: str
+
+
 def append_text(current: str, value: str) -> str:
     if not value:
         return current
@@ -60,6 +102,15 @@ def append_text(current: str, value: str) -> str:
 
 def contains_any(text: str, keywords: List[str]) -> bool:
     return any(keyword in text for keyword in keywords)
+
+
+def sentence_trim(text: str, max_length: int = 220) -> str:
+    text = " ".join(text.split())
+
+    if len(text) <= max_length:
+        return text
+
+    return text[:max_length].rstrip() + "..."
 
 
 def build_missing_questions(sections: Dict[str, str], chief_complaint: Optional[str]) -> List[str]:
@@ -278,3 +329,74 @@ def health():
 @app.post("/case/structure")
 def structure_case_endpoint(payload: CaseStructureRequest):
     return {"data": structure_case(payload)}
+
+
+@app.post("/materia-medica/compare")
+def compare_materia_medica(payload: MateriaMedicaCompareRequest):
+    chunks_by_remedy: Dict[str, List[KnowledgeChunk]] = {}
+
+    for chunk in payload.chunks:
+        chunks_by_remedy.setdefault(chunk.remedy_code, []).append(chunk)
+
+    remedy_items: List[RemedyComparisonItem] = []
+
+    for candidate in payload.candidates:
+        remedy_chunks = chunks_by_remedy.get(candidate.remedy_code, [])
+
+        matching_points = [
+            sentence_trim(chunk.content)
+            for chunk in remedy_chunks[:3]
+        ]
+
+        differentiating_points = []
+        sections = {chunk.section for chunk in remedy_chunks if chunk.section}
+
+        if "mind" in sections:
+            differentiating_points.append("Review mental and emotional symptoms carefully.")
+        if "generals" in sections:
+            differentiating_points.append("Compare general symptoms such as thermal state, thirst, sleep, and energy.")
+        if "skin" in sections:
+            differentiating_points.append("Confirm the character, location, and modalities of skin symptoms.")
+        if "female" in sections or "glands" in sections:
+            differentiating_points.append("Confirm breast/gland symptoms and consider medical evaluation for red flags.")
+
+        if not differentiating_points:
+            differentiating_points.append("Compare characteristic symptoms with the totality before prescription.")
+
+        missing_questions = [
+            "Which symptoms are most characteristic and uncommon in this patient?",
+            "What are the strongest modalities: better, worse, time, weather, position?",
+            "Are the mental generals and physical generals confirming the same remedy?",
+        ]
+
+        source_chunks = [
+            {
+                "section": chunk.section,
+                "source_title": chunk.source_title,
+                "content": sentence_trim(chunk.content, 260),
+                "distance": chunk.distance,
+            }
+            for chunk in remedy_chunks[:4]
+        ]
+
+        remedy_items.append(
+            RemedyComparisonItem(
+                remedy_code=candidate.remedy_code,
+                remedy_name=candidate.remedy_name,
+                rank=candidate.rank,
+                total_score=candidate.total_score,
+                matching_points=matching_points,
+                differentiating_points=differentiating_points,
+                missing_questions=missing_questions,
+                source_chunks=source_chunks,
+            )
+        )
+
+    return {
+        "data": MateriaMedicaCompareResponse(
+            summary="Materia medica comparison generated from retrieved knowledge chunks. Use this as clinical decision support, not as an automatic prescription.",
+            remedies=remedy_items,
+            safety_note="Final remedy, potency, repetition, and prescription must be decided by the qualified practitioner.",
+            engine="local_materia_medica_rag_v1",
+        )
+    }

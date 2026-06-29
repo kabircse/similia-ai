@@ -11,6 +11,7 @@ import { VisitRubricsPanel } from "../components/rubrics/VisitRubricsPanel";
 import { WeightedRepertorizationPanel } from "../components/repertorization/WeightedRepertorizationPanel";
 import { CrossRepertorizationPanel } from "../components/repertorization/CrossRepertorizationPanel";
 import { EliminativeRepertorizationPanel } from "../components/repertorization/EliminativeRepertorizationPanel";
+import { MateriaMedicaComparisonPanel } from "../components/materia-medica/MateriaMedicaComparisonPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -173,6 +174,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <EliminativeRepertorizationPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <MateriaMedicaComparisonPanel patientId={patientId} visitId={visitId} />
       )}
 
       <section className="panel">
