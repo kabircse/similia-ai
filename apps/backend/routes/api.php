@@ -56,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
         [RepertorizationController::class, 'runCross']
     );
 
+    Route::post(
+        '/patients/{patient}/visits/{visit}/repertorize/eliminative',
+        [RepertorizationController::class, 'runEliminative']
+    );
+
     Route::get('/dashboard', function () {
         return response()->json([
             'message' => 'Welcome to Similia AI Doctor Dashboard',

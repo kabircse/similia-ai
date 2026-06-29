@@ -37,6 +37,15 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.warning-panel {
+  border: 1px solid #ffe2a8;
+  background: #fff9ed;
+  color: #8a5a00;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
 /* Auth / Loading */
 
 .screen-center,

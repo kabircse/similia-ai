@@ -16,6 +16,7 @@ class RunWeightedRepertorizationRequest extends FormRequest
         return [
             'settings' => ['nullable', 'array'],
             'settings.limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'settings.strict_essential' => ['nullable', 'boolean'],
         ];
     }
 }
