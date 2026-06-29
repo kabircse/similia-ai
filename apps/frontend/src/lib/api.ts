@@ -288,3 +288,18 @@ export async function deletePatientVisit(
   const response = await api.delete(`/api/patients/${patientId}/visits/${visitId}`);
   return response.data;
 }
+
+export async function structurePatientVisit(
+  patientId: string | number,
+  visitId: string | number,
+  overwriteExistingSections = false
+): Promise<PatientVisit> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/structure-case`,
+    {
+      overwrite_existing_sections: overwriteExistingSections,
+    }
+  );
+
+  return response.data.data;
+}

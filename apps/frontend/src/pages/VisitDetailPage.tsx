@@ -1,7 +1,13 @@
 import { Link, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deletePatientVisit, getPatient, getPatientVisit } from "../lib/api";
+import {
+  deletePatientVisit,
+  getPatient,
+  getPatientVisit,
+  structurePatientVisit,
+} from "../lib/api";
 import { useNavigate } from "react-router";
+import { Brain } from "lucide-react";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -29,6 +35,20 @@ export function VisitDetailPage() {
     },
   });
 
+  const structureMutation = useMutation({
+    mutationFn: () => structurePatientVisit(patientId as string, visitId as string),
+    onSuccess: async (updatedVisit) => {
+      queryClient.setQueryData(
+        ["patients", patientId, "visits", visitId],
+        updatedVisit
+      );
+  
+      await queryClient.invalidateQueries({
+        queryKey: ["patients", patientId, "visits"],
+      });
+    },
+  });
+
   if (patientQuery.isLoading || visitQuery.isLoading) {
     return <div className="panel">Loading visit...</div>;
   }
@@ -39,6 +59,8 @@ export function VisitDetailPage() {
 
   const visit = visitQuery.data;
   const sections = visit.case_sections || {};
+  const redFlags = visit.red_flags || [];
+  const missingQuestions = visit.missing_questions || [];
 
   return (
     <div className="page-stack">
@@ -55,6 +77,14 @@ export function VisitDetailPage() {
           <Link to={`/patients/${patientId}`} className="secondary-link">
             Back
           </Link>
+          <button
+            className="primary-button inline-button"
+            onClick={() => structureMutation.mutate()}
+            disabled={structureMutation.isPending}
+          >
+            <Brain size={16} />
+            {structureMutation.isPending ? "Structuring..." : "Structure with AI"}
+          </button>
           <Link
             to={`/patients/${patientId}/visits/${visit.id}/edit`}
             className="primary-link"
@@ -84,6 +114,34 @@ export function VisitDetailPage() {
         <h3>Raw Case Notes</h3>
         <p className="notes-text">{visit.raw_case_text || "Not added."}</p>
       </section>
+
+      {structureMutation.isError && (
+        <section className="panel error">
+          Unable to structure case. Make sure Laravel and FastAPI AI service are running.
+        </section>
+      )}
+
+      {redFlags.length > 0 && (
+          <section className="panel red-flag-panel">
+            <h3>Red Flags</h3>
+            <ul className="clinical-list">
+              {redFlags.map((flag) => (
+                <li key={flag}>{flag}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {missingQuestions.length > 0 && (
+          <section className="panel question-panel">
+            <h3>Missing Questions</h3>
+            <ul className="clinical-list">
+              {missingQuestions.map((question) => (
+                <li key={question}>{question}</li>
+              ))}
+            </ul>
+          </section>
+        )}
 
       <section className="panel">
         <h3>Structured Case Sections</h3>

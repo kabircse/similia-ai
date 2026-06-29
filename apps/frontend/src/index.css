@@ -873,3 +873,29 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+.inline-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.question-panel {
+  border-color: #d9e8ff;
+  background: #f7fbff;
+}
+
+.red-flag-panel {
+  border-color: #ffd3d3;
+  background: #fff8f8;
+}
+
+.clinical-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #526052;
+}
+
+.clinical-list li + li {
+  margin-top: 8px;
+}
