@@ -967,6 +967,108 @@ export async function queueMateriaMedicaComparison(
   return response.data.data;
 }
 
+export type RemedySuggestionMethod = "weighted" | "cross" | "eliminative";
+
+export type RemedySuggestionItem = {
+  id: number;
+  remedy_id: number | null;
+  remedy_code: string | null;
+  remedy_name: string;
+  rank: number;
+  confidence_score: string;
+  repertory_score: string;
+  materia_medica_score: string;
+  knowledge_score: string;
+  summary: string | null;
+  matching_points: string[];
+  differentiating_points: string[];
+  missing_questions: string[];
+  evidence_matrix: Array<{
+    rubric_path: string;
+    importance: string | null;
+    weight: number | null;
+    is_essential: boolean | null;
+    covered: boolean;
+  }>;
+  repertory_evidence: Record<string, unknown>;
+  materia_medica_evidence: Array<Record<string, unknown>>;
+  potency_considerations: Array<Record<string, unknown>>;
+  relationship_notes: Array<Record<string, unknown>>;
+  medical_safety_notes: Array<Record<string, unknown>>;
+  source_chunks: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type RemedySuggestionRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  repertorization_run_id: number | null;
+  method: RemedySuggestionMethod | null;
+  status: string;
+  limit: number;
+  case_snapshot: Record<string, unknown>;
+  selected_rubrics_snapshot: Array<Record<string, unknown>>;
+  retrieved_sources: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  safety_note: string | null;
+  error_message: string | null;
+  items: RemedySuggestionItem[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type RemedySuggestionRunResponse = {
+  data: RemedySuggestionRun[];
+};
+
+export async function getRemedySuggestionRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RemedySuggestionRunResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-suggestions`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generateRemedySuggestions(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    method?: RemedySuggestionMethod | "";
+    repertorization_run_id?: number | null;
+    limit?: number;
+    include_potency?: boolean;
+    include_relationship?: boolean;
+    include_medical_safety?: boolean;
+    include_organon?: boolean;
+  }
+): Promise<RemedySuggestionRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-suggestions/generate`,
+    {
+      method: input.method || null,
+      repertorization_run_id: input.repertorization_run_id || null,
+      limit: input.limit ?? 3,
+      include_potency: input.include_potency ?? true,
+      include_relationship: input.include_relationship ?? true,
+      include_medical_safety: input.include_medical_safety ?? true,
+      include_organon: input.include_organon ?? true,
+    }
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionSourceMethod =
   | "manual"
   | "weighted"

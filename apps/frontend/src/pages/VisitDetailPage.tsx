@@ -15,6 +15,7 @@ import { WeightedRepertorizationPanel } from "../components/repertorization/Weig
 import { CrossRepertorizationPanel } from "../components/repertorization/CrossRepertorizationPanel";
 import { EliminativeRepertorizationPanel } from "../components/repertorization/EliminativeRepertorizationPanel";
 import { MateriaMedicaComparisonPanel } from "../components/materia-medica/MateriaMedicaComparisonPanel";
+import { RemedySuggestionPanel } from "../components/suggestions/RemedySuggestionPanel";
 import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 
@@ -233,6 +234,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <MateriaMedicaComparisonPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <RemedySuggestionPanel patientId={patientId} visitId={visitId} />
       )}
 
       {patientId && visitId && (

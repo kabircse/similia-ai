@@ -674,6 +674,39 @@ GET /api/knowledge/search?q=complementary antidote inimical&source_type=relation
 
 ---
 
+## AI Remedy Suggestion from Imported Knowledge
+
+After repertory, materia medica, and book knowledge imports are available, Similia AI can generate doctor-facing remedy suggestions from the current visit evidence.
+
+Manual flow:
+
+```text
+Open visit
+Select rubrics
+Run repertorization
+Run materia medica comparison
+Generate AI remedy suggestion
+Review evidence matrix and source chunks
+Doctor decides final remedy, potency, and repetition
+```
+
+API:
+
+```text
+GET /api/patients/{patient}/visits/{visit}/remedy-suggestions
+POST /api/patients/{patient}/visits/{visit}/remedy-suggestions/generate
+```
+
+The suggestion system retrieves:
+
+- selected rubric and repertorization evidence
+- remedy-specific materia medica chunks
+- Organon/philosophy, potency, relationship, and medical knowledge chunks
+
+It stores each suggestion run and item with source evidence for review. It does not prescribe automatically.
+
+---
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
