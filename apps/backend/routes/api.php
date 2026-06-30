@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AiTaskController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\DashboardController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
 use App\Http\Controllers\Api\RepertorizationController;
 use App\Http\Controllers\Api\RepertoryRubricController;
+use App\Http\Controllers\Api\UserNotificationController;
 use App\Http\Controllers\Api\VisitPrintController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +35,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/activity-logs', [AuditLogController::class, 'index'])
         ->middleware('permission:view_activity_logs');
 
+    Route::get('/ai-tasks/{aiTask}', [AiTaskController::class, 'show']);
+
+    Route::get('/notifications', [UserNotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [UserNotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/{notification}/read', [UserNotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllAsRead']);
+
     Route::middleware('permission:manage_clinic_settings')->group(function () {
         Route::get('/clinic-settings', [ClinicSettingController::class, 'show']);
         Route::put('/clinic-settings', [ClinicSettingController::class, 'update']);
@@ -45,6 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
         '/patients/{patient}/visits/{visit}/structure-case',
         [PatientVisitAiController::class, 'structure']
     );
+    Route::post(
+        '/patients/{patient}/visits/{visit}/structure-case/async',
+        [AiTaskController::class, 'structureCase']
+    )->middleware('permission:compare_materia_medica');
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);
     Route::get('/repertory/rubrics/{rubric}', [RepertoryRubricController::class, 'show']);
 
@@ -91,6 +104,10 @@ Route::middleware('auth:sanctum')->group(function () {
         '/patients/{patient}/visits/{visit}/materia-medica/compare',
         [MateriaMedicaComparisonController::class, 'compare']
     );
+    Route::post(
+        '/patients/{patient}/visits/{visit}/materia-medica/compare/async',
+        [AiTaskController::class, 'compareMateriaMedica']
+    )->middleware('permission:compare_materia_medica');
 
     Route::get(
         '/patients/{patient}/visits/{visit}/prescription',

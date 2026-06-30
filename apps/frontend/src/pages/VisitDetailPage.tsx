@@ -1,12 +1,15 @@
 import { Link, useParams, useNavigate } from "react-router";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deletePatientVisit,
   getPatient,
   getPatientVisit,
+  queueCaseStructuring,
   structurePatientVisit,
 } from "../lib/api";
 import { Brain } from "lucide-react";
+import { AiTaskStatus } from "../components/ai/AiTaskStatus";
 import { VisitRubricsPanel } from "../components/rubrics/VisitRubricsPanel";
 import { WeightedRepertorizationPanel } from "../components/repertorization/WeightedRepertorizationPanel";
 import { CrossRepertorizationPanel } from "../components/repertorization/CrossRepertorizationPanel";
@@ -19,6 +22,7 @@ export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [caseTaskId, setCaseTaskId] = useState<number | null>(null);
 
   const patientQuery = useQuery({
     queryKey: ["patients", patientId],
@@ -55,6 +59,26 @@ export function VisitDetailPage() {
       });
     },
   });
+
+  const queueCaseMutation = useMutation({
+    mutationFn: () => queueCaseStructuring(patientId as string, visitId as string),
+    onSuccess: async (task) => {
+      setCaseTaskId(task.id);
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+    },
+  });
+
+  const refreshAfterCaseTask = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["patients", patientId, "visits", visitId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["patients", patientId, "timeline"],
+    });
+    await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+  };
 
   if (patientQuery.isLoading || visitQuery.isLoading) {
     return <div className="panel">Loading visit...</div>;
@@ -104,6 +128,14 @@ export function VisitDetailPage() {
             <Brain size={16} />
             {structureMutation.isPending ? "Structuring..." : "Structure with AI"}
           </button>
+          <button
+            className="secondary-button inline-button"
+            onClick={() => queueCaseMutation.mutate()}
+            disabled={queueCaseMutation.isPending}
+          >
+            <Brain size={16} />
+            {queueCaseMutation.isPending ? "Queuing..." : "Structure in Background"}
+          </button>
           <Link
             to={`/patients/${patientId}/visits/${visit.id}/edit`}
             className="primary-link"
@@ -139,6 +171,14 @@ export function VisitDetailPage() {
           Unable to structure case. Make sure Laravel and FastAPI AI service are running.
         </section>
       )}
+
+      {queueCaseMutation.isError && (
+        <section className="panel error">
+          Unable to queue AI structuring for this visit.
+        </section>
+      )}
+
+      <AiTaskStatus taskId={caseTaskId} onCompleted={refreshAfterCaseTask} />
 
       {redFlags.length > 0 && (
           <section className="panel red-flag-panel">
