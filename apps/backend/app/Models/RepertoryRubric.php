@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class RepertoryRubric extends Model
 {
     protected $fillable = [
+        'import_key',
         'source',
         'chapter',
         'rubric_path',

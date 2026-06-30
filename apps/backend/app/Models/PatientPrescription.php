@@ -13,6 +13,7 @@ class PatientPrescription extends Model
         'doctor_id',
         'repertorization_run_id',
         'repertorization_result_id',
+        'remedy_id',
         'source_method',
         'remedy_code',
         'remedy_name',
@@ -55,5 +56,10 @@ class PatientPrescription extends Model
     public function repertorizationResult(): BelongsTo
     {
         return $this->belongsTo(RepertorizationResult::class);
+    }
+
+    public function remedy(): BelongsTo
+    {
+        return $this->belongsTo(Remedy::class);
     }
 }

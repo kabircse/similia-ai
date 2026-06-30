@@ -5,28 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class RepertoryRubricRemedy extends Model
+class RemedyAlias extends Model
 {
     protected $fillable = [
-        'import_key',
-        'repertory_rubric_id',
         'remedy_id',
-        'remedy_code',
-        'remedy_name',
-        'grade',
+        'alias',
+        'normalized_alias',
+        'alias_type',
         'source',
         'metadata',
     ];
 
     protected $casts = [
-        'grade' => 'integer',
         'metadata' => 'array',
     ];
-
-    public function rubric(): BelongsTo
-    {
-        return $this->belongsTo(RepertoryRubric::class, 'repertory_rubric_id');
-    }
 
     public function remedy(): BelongsTo
     {
