@@ -66,4 +66,9 @@ class PatientVisit extends Model
     {
         return $this->hasOne(PatientFee::class);
     }
+
+    public function voiceTranscripts(): HasMany
+    {
+        return $this->hasMany(VoiceTranscript::class);
+    }
 }

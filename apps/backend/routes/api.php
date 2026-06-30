@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\RepertorizationController;
 use App\Http\Controllers\Api\RepertoryRubricController;
 use App\Http\Controllers\Api\UserNotificationController;
 use App\Http\Controllers\Api\VisitPrintController;
+use App\Http\Controllers\Api\VoiceTranscriptController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -64,6 +65,22 @@ Route::middleware('auth:sanctum')->group(function () {
         '/patients/{patient}/visits/{visit}/structure-case/async',
         [AiTaskController::class, 'structureCase']
     )->middleware('permission:compare_materia_medica');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/voice-transcripts',
+        [VoiceTranscriptController::class, 'index']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/voice-transcripts',
+        [VoiceTranscriptController::class, 'store']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/voice-transcripts/{voiceTranscript}',
+        [VoiceTranscriptController::class, 'show']
+    )->middleware('permission:manage_visits');
+
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);
     Route::get('/repertory/rubrics/{rubric}', [RepertoryRubricController::class, 'show']);
 

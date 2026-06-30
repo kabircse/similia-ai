@@ -10,7 +10,9 @@ use App\Models\PatientVisit;
 use App\Models\RemedySuggestionRun;
 use App\Services\Audit\AuditLogger;
 use App\Services\Suggestions\RemedySuggestionGenerator;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class RemedySuggestionController extends Controller
 {
@@ -59,15 +61,24 @@ class RemedySuggestionController extends Controller
             'include_organon' => $request->boolean('include_organon', true),
         ];
 
-        $run = $generator->generate(
-            patient: $patient,
-            visit: $visit,
-            doctorId: $request->user()->id,
-            repertorizationRunId: $validated['repertorization_run_id'] ?? null,
-            method: $validated['method'] ?? null,
-            limit: $validated['limit'] ?? 3,
-            settings: $settings
-        );
+        try {
+            $run = $generator->generate(
+                patient: $patient,
+                visit: $visit,
+                doctorId: $request->user()->id,
+                repertorizationRunId: $validated['repertorization_run_id'] ?? null,
+                method: $validated['method'] ?? null,
+                limit: $validated['limit'] ?? 3,
+                settings: $settings
+            );
+        } catch (ConnectionException) {
+            abort(502, 'AI service is not reachable. Please make sure FastAPI is running on port 8001.');
+        } catch (RuntimeException $exception) {
+            $message = $exception->getMessage();
+            $status = str_starts_with($message, 'AI service') ? 502 : 422;
+
+            abort($status, $message);
+        }
 
         $auditLogger->log(
             request: $request,
