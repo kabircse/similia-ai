@@ -620,6 +620,60 @@ The importer resolves remedies from the remedy master table, splits large materi
 
 ---
 
+## Import Organon, Potency, and Book Sections
+
+Expected files:
+
+```text
+apps/backend/storage/app/imports/legacy/books.csv
+apps/backend/storage/app/imports/legacy/book_sections.csv
+```
+
+Import books:
+
+```bash
+cd apps/backend
+
+php artisan import:legacy-books storage/app/imports/legacy/books.csv --source=legacy_sql
+```
+
+Import book sections as embedded knowledge chunks:
+
+```bash
+php artisan import:legacy-book-sections storage/app/imports/legacy/book_sections.csv --source=legacy_sql
+```
+
+Test with a limited import:
+
+```bash
+php artisan import:legacy-book-sections storage/app/imports/legacy/book_sections.csv --source=legacy_sql --limit=10
+```
+
+Reimport and replace existing chunks:
+
+```bash
+php artisan import:legacy-book-sections storage/app/imports/legacy/book_sections.csv --source=legacy_sql --reimport
+```
+
+Knowledge source types:
+
+- `organon`
+- `philosophy`
+- `potency`
+- `relationship`
+- `medical`
+- `general`
+
+Search API:
+
+```text
+GET /api/knowledge/search?q=highest ideal of cure&source_type=organon
+GET /api/knowledge/search?q=repetition after improvement&source_type=potency
+GET /api/knowledge/search?q=complementary antidote inimical&source_type=relationship
+```
+
+---
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
