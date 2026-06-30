@@ -21,6 +21,25 @@ type RemedySuggestionPanelProps = {
 
 type Method = RemedySuggestionMethod | "";
 
+function suggestionErrorMessage(error: unknown) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    error.response &&
+    typeof error.response === "object" &&
+    "data" in error.response &&
+    error.response.data &&
+    typeof error.response.data === "object" &&
+    "message" in error.response.data &&
+    typeof error.response.data.message === "string"
+  ) {
+    return error.response.data.message;
+  }
+
+  return "Unable to generate suggestion. Run repertorization first and make sure FastAPI is running.";
+}
+
 export function RemedySuggestionPanel({
   patientId,
   visitId,
@@ -114,8 +133,7 @@ export function RemedySuggestionPanel({
 
       {generateMutation.isError && (
         <div className="form-error">
-          Unable to generate suggestion. Run repertorization first and make sure
-          FastAPI is running.
+          {suggestionErrorMessage(generateMutation.error)}
         </div>
       )}
 

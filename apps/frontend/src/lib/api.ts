@@ -676,6 +676,87 @@ export async function queueCaseStructuring(
   return response.data.data;
 }
 
+export type VoiceTranscript = {
+  id: number;
+
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+
+  language: string;
+  source: string;
+  status: string;
+
+  transcript_text: string;
+  segments: Array<Record<string, unknown>>;
+
+  merged_to_case_text: boolean;
+  merge_mode: "append" | "prepend" | "replace" | null;
+
+  started_at: string | null;
+  completed_at: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type VoiceTranscriptResponse = {
+  data: VoiceTranscript[];
+};
+
+export type SaveVoiceTranscriptResult = {
+  transcript: VoiceTranscript;
+  queued_ai_task_id: number | null;
+};
+
+export async function getVoiceTranscripts(
+  patientId: string | number,
+  visitId: string | number
+): Promise<VoiceTranscriptResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/voice-transcripts`,
+    {
+      params: {
+        per_page: 10,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function saveVoiceTranscript(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    language: string;
+    transcript_text: string;
+    segments?: Array<Record<string, unknown>>;
+    merge_to_case_text?: boolean;
+    merge_mode?: "append" | "prepend" | "replace";
+    started_at?: string | null;
+    completed_at?: string | null;
+  }
+): Promise<SaveVoiceTranscriptResult> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/voice-transcripts`,
+    {
+      language: input.language,
+      transcript_text: input.transcript_text,
+      segments: input.segments ?? [],
+      merge_to_case_text: input.merge_to_case_text ?? true,
+      merge_mode: input.merge_mode ?? "append",
+      started_at: input.started_at ?? null,
+      completed_at: input.completed_at ?? null,
+    }
+  );
+
+  return {
+    transcript: response.data.data,
+    queued_ai_task_id: response.data.meta?.queued_ai_task_id ?? null,
+  };
+}
+
 export type RepertoryRubric = {
   id: number;
   repertory_source_id: number | null;

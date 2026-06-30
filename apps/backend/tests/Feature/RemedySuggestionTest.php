@@ -40,7 +40,8 @@ class RemedySuggestionTest extends TestCase
                 'method' => 'weighted',
                 'limit' => 3,
             ])
-            ->assertStatus(500);
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Run repertorization first before generating remedy suggestions.');
     }
 
     public function test_doctor_can_generate_and_store_remedy_suggestions(): void

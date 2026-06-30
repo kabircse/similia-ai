@@ -18,6 +18,7 @@ import { MateriaMedicaComparisonPanel } from "../components/materia-medica/Mater
 import { RemedySuggestionPanel } from "../components/suggestions/RemedySuggestionPanel";
 import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
+import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -161,6 +162,10 @@ export function VisitDetailPage() {
         <h3>Chief Complaint</h3>
         <p className="notes-text">{visit.chief_complaint || "Not added."}</p>
       </section>
+
+      {patientId && visitId && (
+        <VoiceCaseTakingPanel patientId={patientId} visitId={visitId} />
+      )}
 
       <section className="panel">
         <h3>Raw Case Notes</h3>
