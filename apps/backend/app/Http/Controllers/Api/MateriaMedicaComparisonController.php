@@ -8,6 +8,7 @@ use App\Models\MateriaMedicaChunk;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
+use App\Services\Audit\AuditLogger;
 use App\Services\Knowledge\SimpleTextEmbedding;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -18,7 +19,8 @@ class MateriaMedicaComparisonController extends Controller
         CompareMateriaMedicaRequest $request,
         Patient $patient,
         PatientVisit $visit,
-        SimpleTextEmbedding $embedder
+        SimpleTextEmbedding $embedder,
+        AuditLogger $auditLogger
     ) {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -88,6 +90,22 @@ class MateriaMedicaComparisonController extends Controller
         if ($response->failed()) {
             abort(502, 'AI service failed to compare remedies.');
         }
+
+        $auditLogger->log(
+            request: $request,
+            category: 'materia_medica',
+            action: 'compared',
+            title: 'Materia medica comparison run',
+            description: 'Compared top remedies using retrieved materia medica chunks.',
+            patient: $patient,
+            visit: $visit,
+            entity: $run,
+            metadata: [
+                'method' => $run->method,
+                'repertorization_run_id' => $run->id,
+                'retrieved_chunks' => $chunks->count(),
+            ]
+        );
 
         return response()->json([
             'data' => $response->json('data'),

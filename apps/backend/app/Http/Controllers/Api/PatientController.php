@@ -7,6 +7,7 @@ use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,12 +35,26 @@ class PatientController extends Controller
         return PatientResource::collection($patients);
     }
 
-    public function store(StorePatientRequest $request): PatientResource
+    public function store(StorePatientRequest $request, AuditLogger $auditLogger): PatientResource
     {
         $patient = Patient::create([
             ...$request->validated(),
             'doctor_id' => $request->user()->id,
         ]);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'patient',
+            action: 'created',
+            title: 'Patient created',
+            description: $patient->name,
+            patient: $patient,
+            entity: $patient,
+            metadata: [
+                'patient_name' => $patient->name,
+                'phone' => $patient->phone,
+            ]
+        );
 
         return new PatientResource($patient);
     }
@@ -51,18 +66,62 @@ class PatientController extends Controller
         return new PatientResource($patient);
     }
 
-    public function update(UpdatePatientRequest $request, Patient $patient): PatientResource
+    public function update(
+        UpdatePatientRequest $request,
+        Patient $patient,
+        AuditLogger $auditLogger
+    ): PatientResource
     {
         $this->ensureCanAccessPatient($request, $patient);
+
+        $safeFields = [
+            'name',
+            'age_years',
+            'gender',
+            'phone',
+            'address',
+            'occupation',
+            'marital_status',
+        ];
+        $before = $patient->only($safeFields);
 
         $patient->update($request->validated());
 
-        return new PatientResource($patient->fresh());
+        $patient = $patient->fresh();
+        $after = $patient->only($safeFields);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'patient',
+            action: 'updated',
+            title: 'Patient updated',
+            description: $patient->name,
+            patient: $patient,
+            entity: $patient,
+            before: $before,
+            after: $after
+        );
+
+        return new PatientResource($patient);
     }
 
-    public function destroy(Request $request, Patient $patient): JsonResponse
+    public function destroy(Request $request, Patient $patient, AuditLogger $auditLogger): JsonResponse
     {
         $this->ensureCanAccessPatient($request, $patient);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'patient',
+            action: 'deleted',
+            title: 'Patient deleted',
+            description: $patient->name,
+            patient: $patient,
+            entity: $patient,
+            metadata: [
+                'patient_name' => $patient->name,
+                'phone' => $patient->phone,
+            ]
+        );
 
         $patient->delete();
 

@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationResult;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,8 @@ class PatientPrescriptionController extends Controller
     public function save(
         SavePatientPrescriptionRequest $request,
         Patient $patient,
-        PatientVisit $visit
+        PatientVisit $visit,
+        AuditLogger $auditLogger
     ): PatientPrescriptionResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -75,10 +77,35 @@ class PatientPrescriptionController extends Controller
             $data
         );
 
-        return new PatientPrescriptionResource($prescription->fresh());
+        $prescription = $prescription->fresh();
+
+        $auditLogger->log(
+            request: $request,
+            category: 'prescription',
+            action: 'saved',
+            title: 'Prescription saved',
+            description: trim($prescription->remedy_name.' '.$prescription->potency),
+            patient: $patient,
+            visit: $visit,
+            entity: $prescription,
+            metadata: [
+                'remedy_name' => $prescription->remedy_name,
+                'potency' => $prescription->potency,
+                'status' => $prescription->status,
+                'source_method' => $prescription->source_method,
+                'follow_up_date' => $prescription->follow_up_date?->toDateString(),
+            ]
+        );
+
+        return new PatientPrescriptionResource($prescription);
     }
 
-    public function destroy(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function destroy(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -87,6 +114,17 @@ class PatientPrescriptionController extends Controller
             ->first();
 
         if ($prescription) {
+            $auditLogger->log(
+                request: $request,
+                category: 'prescription',
+                action: 'deleted',
+                title: 'Prescription deleted',
+                description: $prescription->remedy_name,
+                patient: $patient,
+                visit: $visit,
+                entity: $prescription
+            );
+
             $prescription->delete();
         }
 

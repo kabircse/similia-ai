@@ -1869,3 +1869,131 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.activity-filter {
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.activity-filter div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-filter select {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.audit-log-list {
+  display: grid;
+  gap: 14px;
+}
+
+.audit-log-card {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 14px;
+  border: 1px solid #edf0eb;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.audit-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #f0f7f3;
+  color: #145c43;
+  border: 1px solid #cfe9d7;
+}
+
+.audit-content {
+  display: grid;
+  gap: 10px;
+}
+
+.audit-content p {
+  margin: 0;
+  color: #526052;
+}
+
+.audit-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.audit-header strong {
+  color: #102018;
+}
+
+.audit-header span {
+  color: #708074;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.audit-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audit-meta a,
+.audit-meta span {
+  border: 1px solid #d7dfd8;
+  background: #fbfcfa;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #145c43;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.audit-details {
+  border-top: 1px solid #edf0eb;
+  padding-top: 10px;
+}
+
+.audit-details summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #145c43;
+}
+
+.audit-details pre {
+  background: #f8faf7;
+  border: 1px solid #edf0eb;
+  border-radius: 12px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .activity-filter,
+  .audit-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .audit-log-card {
+    grid-template-columns: 1fr;
+  }
+}

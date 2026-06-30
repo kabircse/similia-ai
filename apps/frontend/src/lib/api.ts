@@ -31,8 +31,12 @@ export type DashboardOverview = {
   }>;
   recent_activity: Array<{
     type: string;
+    action?: string;
     title: string;
-    description: string;
+    description: string | null;
+    patient_id?: number | null;
+    patient_name?: string | null;
+    patient_visit_id?: number | null;
     created_at: string | null;
   }>;
 };
@@ -65,6 +69,74 @@ export async function logout() {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const response = await api.get("/api/dashboard/overview");
   return response.data.data;
+}
+
+export type AuditLog = {
+  id: number;
+
+  user_id: number | null;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+
+  category: string;
+  action: string;
+
+  entity_type: string | null;
+  entity_id: number | null;
+
+  title: string;
+  description: string | null;
+
+  metadata: Record<string, unknown>;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+
+  ip_address: string | null;
+  created_at: string | null;
+
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  };
+
+  patient?: {
+    id: number;
+    name: string;
+    phone: string | null;
+  } | null;
+
+  visit?: {
+    id: number;
+    visit_date: string | null;
+    visit_type: string;
+  } | null;
+};
+
+export type AuditLogResponse = {
+  data: AuditLog[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getActivityLogs(params?: {
+  patient_id?: string | number;
+  patient_visit_id?: string | number;
+  category?: string;
+}): Promise<AuditLogResponse> {
+  const response = await api.get("/api/activity-logs", {
+    params: {
+      per_page: 30,
+      ...params,
+    },
+  });
+
+  return response.data;
 }
 
 export type Patient = {

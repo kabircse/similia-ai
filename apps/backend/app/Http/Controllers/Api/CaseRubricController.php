@@ -9,6 +9,7 @@ use App\Http\Resources\CaseRubricResource;
 use App\Models\CaseRubric;
 use App\Models\Patient;
 use App\Models\PatientVisit;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,8 @@ class CaseRubricController extends Controller
     public function store(
         StoreCaseRubricRequest $request,
         Patient $patient,
-        PatientVisit $visit
+        PatientVisit $visit,
+        AuditLogger $auditLogger
     ): CaseRubricResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -51,6 +53,26 @@ class CaseRubricController extends Controller
             ]
         );
 
+        $caseRubric->load('rubric');
+
+        $auditLogger->log(
+            request: $request,
+            category: 'rubric',
+            action: 'selected',
+            title: 'Rubric selected',
+            description: $caseRubric->rubric?->rubric_path,
+            patient: $patient,
+            visit: $visit,
+            entity: $caseRubric,
+            metadata: [
+                'rubric_path' => $caseRubric->rubric?->rubric_path,
+                'symptom_type' => $caseRubric->symptom_type,
+                'importance' => $caseRubric->importance,
+                'weight' => $caseRubric->weight,
+                'is_essential' => $caseRubric->is_essential,
+            ]
+        );
+
         return new CaseRubricResource($caseRubric->load('rubric'));
     }
 
@@ -58,22 +80,57 @@ class CaseRubricController extends Controller
         UpdateCaseRubricRequest $request,
         Patient $patient,
         PatientVisit $visit,
-        CaseRubric $caseRubric
+        CaseRubric $caseRubric,
+        AuditLogger $auditLogger
     ): CaseRubricResource {
         $this->ensureCanAccessCaseRubric($request, $patient, $visit, $caseRubric);
 
         $caseRubric->update($request->validated());
 
-        return new CaseRubricResource($caseRubric->fresh()->load('rubric'));
+        $caseRubric = $caseRubric->fresh()->load('rubric');
+
+        $auditLogger->log(
+            request: $request,
+            category: 'rubric',
+            action: 'updated',
+            title: 'Rubric updated',
+            description: $caseRubric->rubric?->rubric_path,
+            patient: $patient,
+            visit: $visit,
+            entity: $caseRubric,
+            metadata: [
+                'rubric_path' => $caseRubric->rubric?->rubric_path,
+                'symptom_type' => $caseRubric->symptom_type,
+                'importance' => $caseRubric->importance,
+                'weight' => $caseRubric->weight,
+                'is_essential' => $caseRubric->is_essential,
+            ]
+        );
+
+        return new CaseRubricResource($caseRubric);
     }
 
     public function destroy(
         Request $request,
         Patient $patient,
         PatientVisit $visit,
-        CaseRubric $caseRubric
+        CaseRubric $caseRubric,
+        AuditLogger $auditLogger
     ): JsonResponse {
         $this->ensureCanAccessCaseRubric($request, $patient, $visit, $caseRubric);
+
+        $caseRubric->load('rubric');
+
+        $auditLogger->log(
+            request: $request,
+            category: 'rubric',
+            action: 'deleted',
+            title: 'Rubric removed',
+            description: $caseRubric->rubric?->rubric_path,
+            patient: $patient,
+            visit: $visit,
+            entity: $caseRubric
+        );
 
         $caseRubric->delete();
 

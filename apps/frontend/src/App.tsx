@@ -8,6 +8,7 @@ import { PatientFormPage } from "./pages/PatientFormPage";
 import { PatientDetailPage } from "./pages/PatientDetailPage";
 import { VisitFormPage } from "./pages/VisitFormPage";
 import { VisitDetailPage } from "./pages/VisitDetailPage";
+import { ActivityLogPage } from "./pages/ActivityLogPage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -110,6 +111,15 @@ function App() {
               <VisitFormPage />
             </DashboardLayout>
           </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/activity"
+        element={
+          <ProtectedLayout>
+            <ActivityLogPage />
+          </ProtectedLayout>
         }
       />
 
