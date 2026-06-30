@@ -21,6 +21,7 @@ import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
+import { FollowUpAnalysisPanel } from "../components/follow-ups/FollowUpAnalysisPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -171,6 +172,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <MissingQuestionConversationPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <FollowUpAnalysisPanel patientId={patientId} visitId={visitId} />
       )}
 
       <section className="panel">

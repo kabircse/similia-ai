@@ -76,4 +76,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(CaseQuestionSession::class);
     }
+
+    public function followUpAnalysisRuns(): HasMany
+    {
+        return $this->hasMany(FollowUpAnalysisRun::class);
+    }
 }
