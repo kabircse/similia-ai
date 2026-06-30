@@ -582,6 +582,44 @@ Root/chapter rubrics such as `Mind` are imported but marked as non-selectable. T
 
 ---
 
+## Import Legacy Materia Medica Data
+
+Expected files:
+
+```text
+apps/backend/storage/app/imports/legacy/remedies.csv
+apps/backend/storage/app/imports/legacy/materia_media.csv
+apps/backend/storage/app/imports/legacy/materia_media_contents.csv
+```
+
+Import order:
+
+```bash
+cd apps/backend
+
+php artisan import:legacy-remedies storage/app/imports/legacy/remedies.csv --source=legacy_sql
+
+php artisan import:legacy-materia-medica-sources storage/app/imports/legacy/materia_media.csv --source=legacy_sql
+
+php artisan import:legacy-materia-medica-contents storage/app/imports/legacy/materia_media_contents.csv --source=legacy_sql --remedy-source=legacy_sql
+```
+
+Test with a limited content import first:
+
+```bash
+php artisan import:legacy-materia-medica-contents storage/app/imports/legacy/materia_media_contents.csv --source=legacy_sql --remedy-source=legacy_sql --limit=10
+```
+
+Reimport and replace chunks for each legacy content row:
+
+```bash
+php artisan import:legacy-materia-medica-contents storage/app/imports/legacy/materia_media_contents.csv --source=legacy_sql --remedy-source=legacy_sql --reimport
+```
+
+The importer resolves remedies from the remedy master table, splits large materia medica entries into chunks, generates local deterministic pgvector embeddings, and keeps legacy row IDs in metadata for traceability.
+
+---
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
