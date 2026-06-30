@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditLog;
 use App\Models\CaseRubric;
+use App\Models\ClinicSetting;
 use App\Models\Patient;
 use App\Models\PatientFee;
 use App\Models\PatientPrescription;
@@ -19,6 +21,28 @@ class DemoClinicalCaseSeeder extends Seeder
     public function run(): void
     {
         $doctor = User::where('email', 'doctor@similia.test')->firstOrFail();
+
+        ClinicSetting::updateOrCreate(
+            [
+                'doctor_id' => $doctor->id,
+            ],
+            [
+                'clinic_name' => 'Similia AI Demo Clinic',
+                'tagline' => 'AI Clinical Workspace for Classical Homeopathy',
+                'doctor_display_name' => 'Demo Doctor',
+                'doctor_qualification' => 'D.H.M.S',
+                'phone' => '+8801700000000',
+                'email' => 'doctor@similia.test',
+                'website' => 'https://similia-ai.test',
+                'address' => 'Dhaka, Bangladesh',
+                'default_currency' => 'BDT',
+                'default_consultation_fee' => 3000,
+                'default_followup_fee' => 2000,
+                'medicine_fee_included' => true,
+                'prescription_footer' => 'Please follow the doctor-approved instructions. Return for follow-up on the advised date.',
+                'case_sheet_footer' => 'Private clinical case sheet for practitioner use only.',
+            ]
+        );
 
         $patient = Patient::updateOrCreate(
             [
@@ -217,6 +241,26 @@ class DemoClinicalCaseSeeder extends Seeder
                 'payment_status' => 'paid',
                 'payment_date' => now()->toDateString(),
                 'note' => 'Demo fee record.',
+            ]
+        );
+
+        AuditLog::updateOrCreate(
+            [
+                'user_id' => $doctor->id,
+                'patient_id' => $patient->id,
+                'patient_visit_id' => $visit->id,
+                'category' => 'demo',
+                'action' => 'created',
+                'title' => 'Demo clinical workflow created',
+            ],
+            [
+                'entity_type' => PatientVisit::class,
+                'entity_id' => $visit->id,
+                'description' => 'Demo patient, visit, rubrics, repertorization, prescription, fee, print, and timeline are ready.',
+                'metadata' => [
+                    'patient_name' => $patient->name,
+                    'visit_date' => $visit->visit_date?->toDateString(),
+                ],
             ]
         );
     }

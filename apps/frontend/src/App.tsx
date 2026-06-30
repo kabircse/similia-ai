@@ -8,6 +8,8 @@ import { PatientFormPage } from "./pages/PatientFormPage";
 import { PatientDetailPage } from "./pages/PatientDetailPage";
 import { VisitFormPage } from "./pages/VisitFormPage";
 import { VisitDetailPage } from "./pages/VisitDetailPage";
+import { ActivityLogPage } from "./pages/ActivityLogPage";
+import { ClinicSettingsPage } from "./pages/ClinicSettingsPage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -114,6 +116,24 @@ function App() {
       />
 
       <Route
+        path="/activity"
+        element={
+          <ProtectedLayout>
+            <ActivityLogPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedLayout>
+            <ClinicSettingsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
         path="/patients/:patientId/visits/:visitId/print/case-sheet"
         element={
           <ProtectedRoute>
@@ -137,7 +157,6 @@ function App() {
         ["materia-medica", "Materia Medica"],
         ["prescriptions", "Prescriptions"],
         ["fees", "Fees"],
-        ["settings", "Settings"],
       ].map(([path, title]) => (
         <Route
           key={path}

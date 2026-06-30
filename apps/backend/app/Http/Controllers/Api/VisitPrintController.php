@@ -3,15 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClinicSetting;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class VisitPrintController extends Controller
 {
-    public function caseSheet(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function caseSheet(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -33,12 +40,23 @@ class VisitPrintController extends Controller
             ->filter()
             ->values();
 
+        $auditLogger->log(
+            request: $request,
+            category: 'print',
+            action: 'opened_case_sheet',
+            title: 'Case sheet print opened',
+            description: $visit->chief_complaint,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit
+        );
+
         return response()->json([
             'data' => [
                 'document_type' => 'doctor_case_sheet',
                 'generated_at' => now()->toISOString(),
 
-                'clinic' => $this->clinicInfo(),
+                'clinic' => $this->clinicInfo($request),
                 'doctor' => $this->doctorInfo($request),
 
                 'patient' => [
@@ -131,18 +149,34 @@ class VisitPrintController extends Controller
         ]);
     }
 
-    public function prescription(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function prescription(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
         $visit->load(['prescription']);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'print',
+            action: 'opened_prescription',
+            title: 'Prescription print opened',
+            description: $visit->prescription?->remedy_name,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit
+        );
 
         return response()->json([
             'data' => [
                 'document_type' => 'patient_prescription',
                 'generated_at' => now()->toISOString(),
 
-                'clinic' => $this->clinicInfo(),
+                'clinic' => $this->clinicInfo($request),
                 'doctor' => $this->doctorInfo($request),
 
                 'patient' => [
@@ -174,25 +208,52 @@ class VisitPrintController extends Controller
         ]);
     }
 
-    private function clinicInfo(): array
+    private function clinicInfo(Request $request): array
     {
+        $user = $request->user();
+
+        $setting = ClinicSetting::firstOrCreate(
+            [
+                'doctor_id' => $user->id,
+            ],
+            [
+                'clinic_name' => 'Similia AI Clinic',
+                'tagline' => 'AI Clinical Workspace for Classical Homeopathy',
+                'doctor_display_name' => $user->name,
+                'email' => $user->email,
+                'default_currency' => 'BDT',
+                'default_consultation_fee' => 3000,
+                'default_followup_fee' => 2000,
+                'medicine_fee_included' => true,
+                'prescription_footer' => 'Please follow the doctor-approved instructions and return for follow-up as advised.',
+                'case_sheet_footer' => 'Private clinical document for practitioner use only.',
+            ]
+        );
+
         return [
-            'name' => config('app.name', 'Similia AI'),
-            'tagline' => 'AI Clinical Workspace for Classical Homeopathy',
-            'phone' => null,
-            'address' => null,
+            'name' => $setting->clinic_name,
+            'tagline' => $setting->tagline,
+            'phone' => $setting->phone,
+            'email' => $setting->email,
+            'website' => $setting->website,
+            'address' => $setting->address,
+            'logo_url' => $setting->logo_url,
+            'prescription_footer' => $setting->prescription_footer,
+            'case_sheet_footer' => $setting->case_sheet_footer,
         ];
     }
 
     private function doctorInfo(Request $request): array
     {
         $user = $request->user();
+        $setting = ClinicSetting::where('doctor_id', $user->id)->first();
 
         return [
             'id' => $user->id,
-            'name' => $user->name,
+            'name' => $setting?->doctor_display_name ?: $user->name,
             'email' => $user->email,
             'role' => $user->role,
+            'qualification' => $setting?->doctor_qualification,
         ];
     }
 

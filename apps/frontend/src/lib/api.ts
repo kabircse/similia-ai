@@ -13,7 +13,27 @@ export type AuthUser = {
   id: number;
   name: string;
   email: string;
-  role: "doctor" | "admin" | string;
+  role: "doctor" | "admin" | "assistant" | string;
+};
+
+export type Permission =
+  | "view_dashboard"
+  | "manage_patients"
+  | "manage_visits"
+  | "manage_rubrics"
+  | "run_repertorization"
+  | "compare_materia_medica"
+  | "manage_prescriptions"
+  | "manage_fees"
+  | "print_documents"
+  | "view_activity_logs"
+  | "manage_clinic_settings"
+  | "manage_users";
+
+export type AuthResponse = {
+  message?: string;
+  user: AuthUser;
+  permissions: Permission[];
 };
 
 export type DashboardOverview = {
@@ -31,8 +51,12 @@ export type DashboardOverview = {
   }>;
   recent_activity: Array<{
     type: string;
+    action?: string;
     title: string;
-    description: string;
+    description: string | null;
+    patient_id?: number | null;
+    patient_name?: string | null;
+    patient_visit_id?: number | null;
     created_at: string | null;
   }>;
 };
@@ -41,7 +65,10 @@ export async function csrfCookie() {
   await api.get("/sanctum/csrf-cookie");
 }
 
-export async function login(email: string, password: string) {
+export async function login(
+  email: string,
+  password: string
+): Promise<AuthResponse> {
   await csrfCookie();
 
   const response = await api.post("/api/login", {
@@ -52,7 +79,7 @@ export async function login(email: string, password: string) {
   return response.data;
 }
 
-export async function getMe(): Promise<{ user: AuthUser }> {
+export async function getMe(): Promise<AuthResponse> {
   const response = await api.get("/api/me");
   return response.data;
 }
@@ -65,6 +92,156 @@ export async function logout() {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const response = await api.get("/api/dashboard/overview");
   return response.data.data;
+}
+
+export type ClinicSetting = {
+  id: number;
+  doctor_id: number;
+
+  clinic_name: string;
+  tagline: string | null;
+
+  doctor_display_name: string | null;
+  doctor_qualification: string | null;
+
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  address: string | null;
+  logo_url: string | null;
+
+  default_currency: string;
+  default_consultation_fee: string;
+  default_followup_fee: string;
+  medicine_fee_included: boolean;
+
+  prescription_footer: string | null;
+  case_sheet_footer: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicSettingInput = {
+  clinic_name: string;
+  tagline: string;
+
+  doctor_display_name: string;
+  doctor_qualification: string;
+
+  phone: string;
+  email: string;
+  website: string;
+  address: string;
+  logo_url: string;
+
+  default_currency: string;
+  default_consultation_fee: string;
+  default_followup_fee: string;
+  medicine_fee_included: boolean;
+
+  prescription_footer: string;
+  case_sheet_footer: string;
+};
+
+export async function getClinicSettings(): Promise<ClinicSetting> {
+  const response = await api.get("/api/clinic-settings");
+  return response.data.data;
+}
+
+export async function updateClinicSettings(
+  input: ClinicSettingInput
+): Promise<ClinicSetting> {
+  const response = await api.put("/api/clinic-settings", {
+    ...input,
+    tagline: input.tagline || null,
+    doctor_display_name: input.doctor_display_name || null,
+    doctor_qualification: input.doctor_qualification || null,
+    phone: input.phone || null,
+    email: input.email || null,
+    website: input.website || null,
+    address: input.address || null,
+    logo_url: input.logo_url || null,
+    default_currency: input.default_currency || "BDT",
+    default_consultation_fee:
+      input.default_consultation_fee === ""
+        ? 0
+        : Number(input.default_consultation_fee),
+    default_followup_fee:
+      input.default_followup_fee === "" ? 0 : Number(input.default_followup_fee),
+    prescription_footer: input.prescription_footer || null,
+    case_sheet_footer: input.case_sheet_footer || null,
+  });
+
+  return response.data.data;
+}
+
+export type AuditLog = {
+  id: number;
+
+  user_id: number | null;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+
+  category: string;
+  action: string;
+
+  entity_type: string | null;
+  entity_id: number | null;
+
+  title: string;
+  description: string | null;
+
+  metadata: Record<string, unknown>;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+
+  ip_address: string | null;
+  created_at: string | null;
+
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  };
+
+  patient?: {
+    id: number;
+    name: string;
+    phone: string | null;
+  } | null;
+
+  visit?: {
+    id: number;
+    visit_date: string | null;
+    visit_type: string;
+  } | null;
+};
+
+export type AuditLogResponse = {
+  data: AuditLog[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getActivityLogs(params?: {
+  patient_id?: string | number;
+  patient_visit_id?: string | number;
+  category?: string;
+}): Promise<AuditLogResponse> {
+  const response = await api.get("/api/activity-logs", {
+    params: {
+      per_page: 30,
+      ...params,
+    },
+  });
+
+  return response.data;
 }
 
 export type Patient = {
@@ -881,13 +1058,19 @@ export type PrintDoctor = {
   name: string;
   email: string;
   role: string;
+  qualification?: string | null;
 };
 
 export type PrintClinic = {
   name: string;
   tagline: string | null;
   phone: string | null;
+  email?: string | null;
+  website?: string | null;
   address: string | null;
+  logo_url?: string | null;
+  prescription_footer?: string | null;
+  case_sheet_footer?: string | null;
 };
 
 export type PrintVisit = {

@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\CaseRubricController;
+use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
@@ -28,6 +30,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/activity-logs', [AuditLogController::class, 'index'])
+        ->middleware('permission:view_activity_logs');
+
+    Route::middleware('permission:manage_clinic_settings')->group(function () {
+        Route::get('/clinic-settings', [ClinicSettingController::class, 'show']);
+        Route::put('/clinic-settings', [ClinicSettingController::class, 'update']);
+    });
+
     Route::apiResource('patients', PatientController::class);
     Route::get('/patients/{patient}/timeline', [PatientTimelineController::class, 'index']);
     Route::apiResource('patients.visits', PatientVisitController::class);

@@ -30,14 +30,16 @@ class AuthTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('user.email', 'doctor@test.com')
-            ->assertJsonPath('user.role', 'doctor');
+            ->assertJsonPath('user.role', 'doctor')
+            ->assertJsonPath('permissions.0', 'view_dashboard');
 
         $this
             ->withHeader('Origin', 'http://localhost:5173')
             ->withHeader('Referer', 'http://localhost:5173')
             ->getJson('/api/me')
             ->assertOk()
-            ->assertJsonPath('user.email', 'doctor@test.com');
+            ->assertJsonPath('user.email', 'doctor@test.com')
+            ->assertJsonPath('permissions.0', 'view_dashboard');
     }
 
     public function test_login_fails_with_wrong_password(): void
