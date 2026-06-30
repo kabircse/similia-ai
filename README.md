@@ -177,7 +177,7 @@ Implemented three methods:
 ### Backend
 
 - Laravel 13
-- PHP 8.3
+- PHP 8.4
 - Laravel Sanctum
 - PostgreSQL
 - pgvector
@@ -208,7 +208,7 @@ Implemented three methods:
 
 ### Infrastructure
 
-- Docker Compose
+- Docker Compose for local and production deployment
 - PostgreSQL with pgvector
 - Redis
 - Local multi-service development
@@ -229,10 +229,15 @@ similia-ai/
 |-- docs/
 |   |-- ARCHITECTURE.md
 |   |-- API_OVERVIEW.md
+|   |-- DEPLOYMENT.md
 |   |-- DEMO_SCRIPT.md
 |   |-- PORTFOLIO_CASE_STUDY.md
 |   `-- ROADMAP.md
+|-- infrastructure/
+|   `-- nginx/
+|-- scripts/
 |-- docker-compose.yml
+|-- docker-compose.prod.yml
 `-- README.md
 ```
 
@@ -353,6 +358,77 @@ SESSION_SAME_SITE=lax
 ```env
 VITE_API_BASE_URL=http://localhost:8000
 ```
+
+---
+
+## Production Docker Deployment
+
+Copy the production env example:
+
+```bash
+cp .env.production.example .env.production
+```
+
+Generate a production `APP_KEY`:
+
+```bash
+cd apps/backend
+php artisan key:generate --show
+```
+
+Edit secrets and domain settings:
+
+```bash
+nano .env.production
+```
+
+Build and start production containers:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+Run migrations:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan migrate --force
+```
+
+Run demo seed only for a demo deployment:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan db:seed --force
+```
+
+Check containers:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+```
+
+After the first setup, deploy with:
+
+```bash
+./scripts/deploy-prod.sh
+```
+
+Create a PostgreSQL backup with:
+
+```bash
+./scripts/backup-postgres.sh
+```
+
+Production services:
+
+- proxy
+- frontend
+- backend-nginx
+- backend PHP-FPM
+- FastAPI AI service
+- PostgreSQL pgvector
+- Redis
+
+Full deployment notes are in [Deployment Guide](docs/DEPLOYMENT.md).
 
 ---
 
