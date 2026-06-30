@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\PatientTimelineController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
 use App\Http\Controllers\Api\RemedyController;
+use App\Http\Controllers\Api\RemedySuggestionController;
 use App\Http\Controllers\Api\RepertorizationController;
 use App\Http\Controllers\Api\RepertoryRubricController;
 use App\Http\Controllers\Api\UserNotificationController;
@@ -112,6 +113,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(
         '/patients/{patient}/visits/{visit}/materia-medica/compare/async',
         [AiTaskController::class, 'compareMateriaMedica']
+    )->middleware('permission:compare_materia_medica');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/remedy-suggestions',
+        [RemedySuggestionController::class, 'index']
+    )->middleware('permission:compare_materia_medica');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/remedy-suggestions/{suggestionRun}',
+        [RemedySuggestionController::class, 'show']
+    )->middleware('permission:compare_materia_medica');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/remedy-suggestions/generate',
+        [RemedySuggestionController::class, 'generate']
     )->middleware('permission:compare_materia_medica');
 
     Route::get(

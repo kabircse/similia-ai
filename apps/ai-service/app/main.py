@@ -87,6 +87,43 @@ class MateriaMedicaCompareResponse(BaseModel):
     engine: str
 
 
+class RemedySuggestRequest(BaseModel):
+    repertorization_run: Dict[str, Any] = Field(default_factory=dict)
+    case_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    selected_rubrics: List[Dict[str, Any]] = Field(default_factory=list)
+    candidates: List[Dict[str, Any]] = Field(default_factory=list)
+    knowledge_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    retrieved_sources: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RemedySuggestItem(BaseModel):
+    remedy_code: Optional[str] = None
+    remedy_name: str
+    rank: int
+    confidence_score: float = 0
+    repertory_score: float = 0
+    materia_medica_score: float = 0
+    knowledge_score: float = 0
+    summary: str
+    matching_points: List[str] = Field(default_factory=list)
+    differentiating_points: List[str] = Field(default_factory=list)
+    missing_questions: List[str] = Field(default_factory=list)
+    evidence_matrix: List[Dict[str, Any]] = Field(default_factory=list)
+    repertory_evidence: Dict[str, Any] = Field(default_factory=dict)
+    materia_medica_evidence: List[Dict[str, Any]] = Field(default_factory=list)
+    potency_considerations: List[Dict[str, Any]] = Field(default_factory=list)
+    relationship_notes: List[Dict[str, Any]] = Field(default_factory=list)
+    medical_safety_notes: List[Dict[str, Any]] = Field(default_factory=list)
+    source_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RemedySuggestResponse(BaseModel):
+    safety_note: str
+    suggestions: List[RemedySuggestItem]
+    engine: str
+
+
 def append_text(current: str, value: str) -> str:
     if not value:
         return current
@@ -111,6 +148,156 @@ def sentence_trim(text: str, max_length: int = 220) -> str:
         return text
 
     return text[:max_length].rstrip() + "..."
+
+
+def _short_text(text: Optional[str], limit: int = 260) -> str:
+    text = (text or "").strip().replace("\n", " ")
+    text = " ".join(text.split())
+
+    if len(text) <= limit:
+        return text
+
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _knowledge_by_type(chunks: List[Dict[str, Any]], source_type: str) -> List[Dict[str, Any]]:
+    return [chunk for chunk in chunks if chunk.get("source_type") == source_type]
+
+
+def _extract_matching_points(candidate: Dict[str, Any]) -> List[str]:
+    points: List[str] = []
+    repertory = candidate.get("repertory_evidence", {}) or {}
+    supporting = repertory.get("supporting_rubrics", []) or []
+
+    for rubric in supporting[:6]:
+        if isinstance(rubric, dict):
+            path = rubric.get("rubric_path") or rubric.get("rubric") or rubric.get("path")
+            grade = rubric.get("remedy_grade") or rubric.get("grade")
+            if path:
+                grade_text = f" grade {grade}" if grade else ""
+                points.append(f"Covers rubric: {path}{grade_text}")
+        elif isinstance(rubric, str):
+            points.append(f"Covers rubric: {rubric}")
+
+    for chunk in (candidate.get("materia_medica_chunks", []) or [])[:4]:
+        section = chunk.get("section") or "Materia medica"
+        content = _short_text(chunk.get("content"), 180)
+        if content:
+            points.append(f"{section}: {content}")
+
+    return points[:8]
+
+
+def _extract_differentiating_points(candidate: Dict[str, Any]) -> List[str]:
+    points: List[str] = []
+    missing = (
+        candidate.get("missing_important_rubrics", [])
+        or candidate.get("repertory_evidence", {}).get("missing_important_rubrics", [])
+        or []
+    )
+
+    for item in missing[:5]:
+        if isinstance(item, dict):
+            path = item.get("rubric_path") or item.get("rubric") or item.get("path")
+            if path:
+                points.append(f"Not confirmed or missing: {path}")
+        elif isinstance(item, str):
+            points.append(f"Not confirmed or missing: {item}")
+
+    if not points:
+        points.append(
+            "Differentiate with modalities, thermal state, thirst, mental generals, and concomitants."
+        )
+
+    return points
+
+
+def _evidence_matrix(
+    selected_rubrics: List[Dict[str, Any]],
+    candidate: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    supporting = candidate.get("repertory_evidence", {}).get("supporting_rubrics", []) or []
+    supporting_text = " ".join(
+        [
+            str(item.get("rubric_path") or item.get("rubric") or item.get("path") or item)
+            if isinstance(item, dict)
+            else str(item)
+            for item in supporting
+        ]
+    ).lower()
+
+    matrix = []
+
+    for rubric in selected_rubrics[:12]:
+        path = rubric.get("rubric_path") or ""
+        matrix.append(
+            {
+                "rubric_path": path,
+                "importance": rubric.get("importance"),
+                "weight": rubric.get("weight"),
+                "is_essential": rubric.get("is_essential"),
+                "covered": path.lower() in supporting_text if path else False,
+            }
+        )
+
+    return matrix
+
+
+def _knowledge_notes(
+    chunks: List[Dict[str, Any]],
+    source_type: str,
+    limit: int = 3,
+) -> List[Dict[str, Any]]:
+    notes = []
+
+    for chunk in _knowledge_by_type(chunks, source_type)[:limit]:
+        notes.append(
+            {
+                "source_title": chunk.get("source_title"),
+                "author": chunk.get("author"),
+                "title": chunk.get("title"),
+                "source_ref": chunk.get("source_ref"),
+                "note": _short_text(chunk.get("content"), 320),
+            }
+        )
+
+    return notes
+
+
+def _source_chunks(
+    candidate: Dict[str, Any],
+    knowledge_chunks: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    chunks = []
+
+    for chunk in (candidate.get("materia_medica_chunks", []) or [])[:5]:
+        chunks.append(
+            {
+                "type": "materia_medica",
+                "id": chunk.get("id"),
+                "source_title": chunk.get("source_title"),
+                "author": chunk.get("author"),
+                "section": chunk.get("section"),
+                "content": _short_text(chunk.get("content"), 500),
+                "distance": chunk.get("distance"),
+            }
+        )
+
+    for chunk in knowledge_chunks[:8]:
+        chunks.append(
+            {
+                "type": chunk.get("source_type"),
+                "id": chunk.get("id"),
+                "source_title": chunk.get("source_title"),
+                "author": chunk.get("author"),
+                "title": chunk.get("title"),
+                "source_ref": chunk.get("source_ref"),
+                "content": _short_text(chunk.get("content"), 500),
+                "distance": chunk.get("distance"),
+            }
+        )
+
+    return chunks
 
 
 def build_missing_questions(sections: Dict[str, str], chief_complaint: Optional[str]) -> List[str]:
@@ -400,3 +587,92 @@ def compare_materia_medica(payload: MateriaMedicaCompareRequest):
             engine="local_materia_medica_rag_v1",
         )
     }
+
+
+@app.post("/remedy/suggest", response_model=RemedySuggestResponse)
+def remedy_suggest(payload: RemedySuggestRequest) -> RemedySuggestResponse:
+    selected_rubrics = payload.selected_rubrics
+    knowledge_chunks = payload.knowledge_chunks
+    red_flags = payload.case_snapshot.get("red_flags") or []
+    missing_questions = payload.case_snapshot.get("missing_questions") or []
+    method = payload.repertorization_run.get("method", "selected")
+    suggestions: List[RemedySuggestItem] = []
+
+    for candidate in payload.candidates:
+        rank = int(candidate.get("rank") or 1)
+        rubric_coverage = float(candidate.get("rubric_coverage") or 0)
+        essential_coverage = float(candidate.get("essential_coverage") or 0)
+        total_score = float(candidate.get("total_score") or 0)
+        mm_chunks = candidate.get("materia_medica_chunks") or []
+
+        repertory_score = min(total_score, 100)
+        materia_score = min(len(mm_chunks) * 12, 40)
+        knowledge_score = min(len(knowledge_chunks) * 2, 20)
+        confidence = min(
+            100,
+            (rubric_coverage * 12)
+            + (essential_coverage * 15)
+            + materia_score
+            + max(0, 25 - rank * 4),
+        )
+
+        remedy_name = candidate.get("remedy_name") or "Unknown remedy"
+        remedy_code = candidate.get("remedy_code")
+        summary = (
+            f"{remedy_name} appears as rank {rank} in the {method} repertorization result. "
+            "It should be considered only as a doctor-reviewed possibility, supported by "
+            "rubric coverage and retrieved knowledge evidence."
+        )
+
+        suggestions.append(
+            RemedySuggestItem(
+                remedy_code=remedy_code,
+                remedy_name=remedy_name,
+                rank=rank,
+                confidence_score=round(confidence, 2),
+                repertory_score=round(repertory_score, 2),
+                materia_medica_score=round(materia_score, 2),
+                knowledge_score=round(knowledge_score, 2),
+                summary=summary,
+                matching_points=_extract_matching_points(candidate),
+                differentiating_points=_extract_differentiating_points(candidate),
+                missing_questions=missing_questions[:8],
+                evidence_matrix=_evidence_matrix(selected_rubrics, candidate),
+                repertory_evidence=candidate.get("repertory_evidence") or {},
+                materia_medica_evidence=[
+                    {
+                        "source_title": chunk.get("source_title"),
+                        "author": chunk.get("author"),
+                        "section": chunk.get("section"),
+                        "content": _short_text(chunk.get("content"), 320),
+                    }
+                    for chunk in mm_chunks[:5]
+                ],
+                potency_considerations=_knowledge_notes(knowledge_chunks, "potency", 4)
+                + _knowledge_notes(knowledge_chunks, "organon", 2)
+                + _knowledge_notes(knowledge_chunks, "philosophy", 2),
+                relationship_notes=_knowledge_notes(knowledge_chunks, "relationship", 4),
+                medical_safety_notes=_knowledge_notes(knowledge_chunks, "medical", 4),
+                source_chunks=_source_chunks(candidate, knowledge_chunks),
+                metadata={
+                    "rubric_coverage": rubric_coverage,
+                    "essential_coverage": essential_coverage,
+                    "total_score": total_score,
+                },
+            )
+        )
+
+    safety_note = (
+        "This is a doctor-facing decision-support suggestion. It is not an automatic "
+        "prescription. Final remedy, potency, repetition, and follow-up must be decided "
+        "by the practitioner."
+    )
+
+    if red_flags:
+        safety_note += " Red flags detected: " + "; ".join([str(flag) for flag in red_flags[:5]])
+
+    return RemedySuggestResponse(
+        safety_note=safety_note,
+        suggestions=suggestions,
+        engine="local_remedy_suggestion_rag_v1",
+    )
