@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Printer } from "lucide-react";
 import { getCaseSheetPrintData } from "../../lib/api";
+import { formatCaseSectionValue } from "../../lib/caseSectionFormat";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -150,7 +151,7 @@ export function CaseSheetPrintPage() {
               {Object.entries(data.visit.case_sections ?? {}).map(([key, value]) => (
                 <div key={key} className="print-mini-box">
                   <strong>{key.replaceAll("_", " ")}</strong>
-                  <p>{value || "-"}</p>
+                  <p>{formatCaseSectionValue(value)}</p>
                 </div>
               ))}
             </div>

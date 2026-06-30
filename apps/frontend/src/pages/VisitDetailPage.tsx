@@ -9,6 +9,7 @@ import {
   structurePatientVisit,
 } from "../lib/api";
 import { Brain } from "lucide-react";
+import { formatCaseSectionValue } from "../lib/caseSectionFormat";
 import { AiTaskStatus } from "../components/ai/AiTaskStatus";
 import { VisitRubricsPanel } from "../components/rubrics/VisitRubricsPanel";
 import { WeightedRepertorizationPanel } from "../components/repertorization/WeightedRepertorizationPanel";
@@ -19,6 +20,7 @@ import { RemedySuggestionPanel } from "../components/suggestions/RemedySuggestio
 import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
+import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -167,6 +169,10 @@ export function VisitDetailPage() {
         <VoiceCaseTakingPanel patientId={patientId} visitId={visitId} />
       )}
 
+      {patientId && visitId && (
+        <MissingQuestionConversationPanel patientId={patientId} visitId={visitId} />
+      )}
+
       <section className="panel">
         <h3>Raw Case Notes</h3>
         <p className="notes-text">{visit.raw_case_text || "Not added."}</p>
@@ -215,7 +221,7 @@ export function VisitDetailPage() {
           {Object.entries(sections).map(([key, value]) => (
             <div className="case-detail-item" key={key}>
               <dt>{key.replaceAll("_", " ")}</dt>
-              <dd>{value || "-"}</dd>
+              <dd>{formatCaseSectionValue(value)}</dd>
             </div>
           ))}
         </div>

@@ -757,6 +757,139 @@ export async function saveVoiceTranscript(
   };
 }
 
+export type CaseQuestionMessage = {
+  id: number;
+
+  case_question_session_id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+
+  parent_message_id: number | null;
+
+  role: "assistant" | "doctor" | "system";
+  message_type: "question" | "answer" | "note";
+  status: "pending" | "answered" | "skipped" | "saved";
+
+  question_key: string | null;
+  category: string | null;
+  importance: "normal" | "important" | "red_flag";
+
+  content: string;
+
+  extracted_update: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+
+  answered_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type CaseQuestionSession = {
+  id: number;
+
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+
+  status: "active" | "completed" | "cancelled";
+  language: string;
+  mode: string;
+
+  total_questions: number;
+  answered_questions: number;
+
+  case_snapshot: Record<string, unknown>;
+  settings: Record<string, unknown>;
+
+  messages: CaseQuestionMessage[];
+
+  started_at: string | null;
+  completed_at: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type CaseQuestionSessionResponse = {
+  data: CaseQuestionSession[];
+};
+
+export async function getCaseQuestionSessions(
+  patientId: string | number,
+  visitId: string | number
+): Promise<CaseQuestionSessionResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions`,
+    {
+      params: {
+        per_page: 10,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function startCaseQuestionSession(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    language?: string;
+    mode?: "ai_missing_questions" | "from_existing_missing_questions";
+    max_questions?: number;
+    replace_active_session?: boolean;
+  }
+): Promise<CaseQuestionSession> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions/start`,
+    {
+      language: input.language ?? "bn-BD",
+      mode: input.mode ?? "ai_missing_questions",
+      max_questions: input.max_questions ?? 10,
+      replace_active_session: input.replace_active_session ?? false,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function answerCaseQuestion(
+  patientId: string | number,
+  visitId: string | number,
+  sessionId: string | number,
+  input: {
+    question_message_id: number;
+    answer_text: string;
+    merge_to_case_text?: boolean;
+    apply_to_case_sections?: boolean;
+  }
+): Promise<CaseQuestionSession> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions/${sessionId}/answer`,
+    {
+      question_message_id: input.question_message_id,
+      answer_text: input.answer_text,
+      merge_to_case_text: input.merge_to_case_text ?? true,
+      apply_to_case_sections: input.apply_to_case_sections ?? true,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function completeCaseQuestionSession(
+  patientId: string | number,
+  visitId: string | number,
+  sessionId: string | number
+): Promise<CaseQuestionSession> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions/${sessionId}/complete`
+  );
+
+  return response.data.data;
+}
+
 export type RepertoryRubric = {
   id: number;
   repertory_source_id: number | null;
@@ -1386,7 +1519,7 @@ export type PrintVisit = {
   case_source?: string;
   chief_complaint: string | null;
   raw_case_text?: string | null;
-  case_sections?: Record<string, string>;
+  case_sections?: Record<string, unknown>;
   missing_questions?: string[];
   red_flags?: string[];
   doctor_notes?: string | null;
