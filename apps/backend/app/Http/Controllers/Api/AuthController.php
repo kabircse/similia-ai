@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\PermissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, PermissionService $permissionService): JsonResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -28,13 +29,15 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Login successful',
             'user' => $request->user(),
+            'permissions' => $permissionService->permissionsFor($request->user()),
         ]);
     }
 
-    public function me(Request $request): JsonResponse
+    public function me(Request $request, PermissionService $permissionService): JsonResponse
     {
         return response()->json([
             'user' => $request->user(),
+            'permissions' => $permissionService->permissionsFor($request->user()),
         ]);
     }
 

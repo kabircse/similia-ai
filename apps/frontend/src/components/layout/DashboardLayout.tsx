@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ElementType, ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,21 +14,73 @@ import {
   Activity,
 } from "lucide-react";
 import { getMe, logout } from "../../lib/api";
+import { hasPermission } from "../../lib/permissions";
+import type { Permission } from "../../lib/api";
 
 type DashboardLayoutProps = {
   children: ReactNode;
 };
 
-const navItems = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Patients", path: "/patients", icon: Users },
-  { label: "Case Taking", path: "/case-taking", icon: ClipboardList },
-  { label: "Repertory", path: "/repertory", icon: Search },
-  { label: "Materia Medica", path: "/materia-medica", icon: BookOpen },
-  { label: "Prescriptions", path: "/prescriptions", icon: FileText },
-  { label: "Fees", path: "/fees", icon: Receipt },
-  { label: "Activity", path: "/activity", icon: Activity },
-  { label: "Settings", path: "/settings", icon: Settings },
+const navItems: Array<{
+  label: string;
+  path: string;
+  icon: ElementType;
+  permission: Permission;
+}> = [
+  {
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: LayoutDashboard,
+    permission: "view_dashboard",
+  },
+  {
+    label: "Patients",
+    path: "/patients",
+    icon: Users,
+    permission: "manage_patients",
+  },
+  {
+    label: "Case Taking",
+    path: "/case-taking",
+    icon: ClipboardList,
+    permission: "manage_visits",
+  },
+  {
+    label: "Repertory",
+    path: "/repertory",
+    icon: Search,
+    permission: "manage_rubrics",
+  },
+  {
+    label: "Materia Medica",
+    path: "/materia-medica",
+    icon: BookOpen,
+    permission: "compare_materia_medica",
+  },
+  {
+    label: "Prescriptions",
+    path: "/prescriptions",
+    icon: FileText,
+    permission: "manage_prescriptions",
+  },
+  {
+    label: "Fees",
+    path: "/fees",
+    icon: Receipt,
+    permission: "manage_fees",
+  },
+  {
+    label: "Activity",
+    path: "/activity",
+    icon: Activity,
+    permission: "view_activity_logs",
+  },
+  {
+    label: "Settings",
+    path: "/settings",
+    icon: Settings,
+    permission: "manage_clinic_settings",
+  },
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -40,6 +92,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     queryFn: getMe,
     retry: false,
   });
+  const permissions = data?.permissions ?? [];
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -61,22 +114,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+          {navItems
+            .filter((item) => hasPermission(permissions, item.permission))
+            .map((item) => {
+              const Icon = item.icon;
 
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `nav-item ${isActive ? "active" : ""}`
-                }
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `nav-item ${isActive ? "active" : ""}`
+                  }
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
         </nav>
       </aside>
 

@@ -26,7 +26,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -1613,6 +1614,54 @@ button:disabled {
   }
 }
 
+.settings-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.settings-form input,
+.settings-form select,
+.settings-form textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+}
+
+.settings-form textarea {
+  resize: vertical;
+}
+
+.settings-form input:focus,
+.settings-form select:focus,
+.settings-form textarea:focus {
+  border-color: #145c43;
+  box-shadow: 0 0 0 3px rgba(20, 92, 67, 0.12);
+}
+
+.settings-checkbox {
+  align-self: end;
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+@media (max-width: 920px) {
+  .settings-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .print-page {
   min-height: 100vh;
   background: #e8ece8;
@@ -1668,6 +1717,18 @@ button:disabled {
 .print-header p {
   margin: 0;
   color: #526052;
+}
+
+.print-clinic-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.print-clinic-logo {
+  max-width: 86px;
+  max-height: 64px;
+  object-fit: contain;
+  margin-bottom: 8px;
 }
 
 .print-doc-title {
@@ -1799,6 +1860,14 @@ button:disabled {
 
 .prescription-footer {
   margin-top: 80px;
+}
+
+.print-footer-note {
+  border-top: 1px solid #d7dfd8;
+  margin-top: 18px;
+  padding-top: 12px;
+  color: #526052;
+  font-size: 13px;
 }
 
 @media print {
