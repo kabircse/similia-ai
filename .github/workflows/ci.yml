@@ -45,7 +45,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.3"
+          php-version: "8.4"
           extensions: mbstring, dom, fileinfo, pgsql, pdo_pgsql
           coverage: none
 
@@ -120,6 +120,9 @@ jobs:
   ai-service:
     name: FastAPI AI Service Checks
     runs-on: ubuntu-latest
+
+    env:
+      PYTHONPATH: ${{ github.workspace }}/apps/ai-service
 
     defaults:
       run:
