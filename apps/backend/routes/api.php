@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CaseQuestionConversationController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\FollowUpAnalysisController;
 use App\Http\Controllers\Api\KnowledgeSearchController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
@@ -105,6 +106,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(
         '/patients/{patient}/visits/{visit}/question-sessions/{questionSession}/complete',
         [CaseQuestionConversationController::class, 'complete']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/follow-up-analyses',
+        [FollowUpAnalysisController::class, 'index']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/follow-up-analyses/generate',
+        [FollowUpAnalysisController::class, 'generate']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/follow-up-analyses/{followUpAnalysisRun}',
+        [FollowUpAnalysisController::class, 'show']
     )->middleware('permission:manage_visits');
 
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);

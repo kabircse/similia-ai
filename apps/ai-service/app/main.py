@@ -160,6 +160,48 @@ class MissingQuestionApplyAnswerResponse(BaseModel):
     extracted_summary: str
 
 
+class FollowUpAnalyzeRequest(BaseModel):
+    previous_visit: Dict[str, Any] = Field(default_factory=dict)
+    current_visit: Dict[str, Any] = Field(default_factory=dict)
+    prescription: Dict[str, Any] = Field(default_factory=dict)
+    timeline_context: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class FollowUpProgressItemModel(BaseModel):
+    category: Optional[str] = None
+    symptom: str
+    change_status: str = "unchanged"
+    previous_intensity: Optional[int] = None
+    current_intensity: Optional[int] = None
+    change_score: float = 0
+    evidence: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class FollowUpAnalyzeResponse(BaseModel):
+    response_level: str = "unclear"
+    progress_score: float = 0
+
+    analysis_summary: str
+    remedy_response_assessment: str
+
+    improvement_points: List[str] = Field(default_factory=list)
+    worsening_points: List[str] = Field(default_factory=list)
+    unchanged_points: List[str] = Field(default_factory=list)
+    new_symptoms: List[str] = Field(default_factory=list)
+    old_symptoms_returned: List[str] = Field(default_factory=list)
+    possible_aggravation_signs: List[str] = Field(default_factory=list)
+    red_flags: List[str] = Field(default_factory=list)
+
+    suggested_follow_up_questions: List[str] = Field(default_factory=list)
+    doctor_review_points: List[str] = Field(default_factory=list)
+    recommended_next_steps: List[str] = Field(default_factory=list)
+
+    progress_items: List[FollowUpProgressItemModel] = Field(default_factory=list)
+
+    safety_note: str
+
+
 def append_text(current: str, value: str) -> str:
     if not value:
         return current
@@ -443,6 +485,208 @@ def _answer_category_update(
         updates[return_updates_key] = append_text(current, answer)
 
     return updates
+
+
+def _stringify_case_value(value: Any) -> str:
+    if value is None:
+        return ""
+
+    if isinstance(value, list):
+        return ", ".join([_stringify_case_value(item) for item in value if item is not None])
+
+    if isinstance(value, dict):
+        return "; ".join(
+            [
+                f"{key}: {_stringify_case_value(item)}"
+                for key, item in value.items()
+                if item is not None
+            ]
+        )
+
+    return str(value)
+
+
+def _text_from_visit(visit: Dict[str, Any]) -> str:
+    parts: List[str] = []
+
+    for key in ["chief_complaint", "raw_case_text", "doctor_notes"]:
+        value = visit.get(key)
+        if value:
+            parts.append(str(value))
+
+    case_sections = visit.get("case_sections") or {}
+
+    if isinstance(case_sections, dict):
+        for key, value in case_sections.items():
+            text = _stringify_case_value(value)
+            if text:
+                parts.append(f"{key}: {text}")
+
+    return "\n".join(parts).lower()
+
+
+def _followup_contains_any(text: str, words: List[str]) -> bool:
+    return any(word.lower() in text for word in words)
+
+
+def _contains_non_negated(text: str, words: List[str]) -> bool:
+    for word in words:
+        word = word.lower()
+        if word not in text:
+            continue
+
+        negated_patterns = [
+            f"no {word}",
+            f"without {word}",
+            f"denies {word}",
+            f"not {word}",
+            f"কোনো {word} নেই",
+            f"{word} নেই",
+        ]
+
+        if any(pattern in text for pattern in negated_patterns):
+            continue
+
+        return True
+
+    return False
+
+
+def _extract_progress_points(current_text: str) -> tuple[List[str], List[str], List[str], List[str]]:
+    improvement: List[str] = []
+    worsening: List[str] = []
+    unchanged: List[str] = []
+    new_symptoms: List[str] = []
+
+    improved_words = ["better", "improved", "relief", "less", "reduced", "ভালো", "কমেছে", "আরাম"]
+    worse_words = ["worse", "increased", "aggravated", "more", "severe", "বেড়েছে", "বাড়ে", "খারাপ"]
+    unchanged_words = ["same", "unchanged", "no change", "একই", "পরিবর্তন নেই"]
+    new_words = ["new", "started", "now", "নতুন", "শুরু", "এখন"]
+
+    sentences = [
+        sentence.strip()
+        for sentence in current_text.replace("\n", ". ").split(".")
+        if sentence.strip()
+    ]
+
+    for sentence in sentences:
+        lower = sentence.lower()
+
+        if _followup_contains_any(lower, improved_words):
+            improvement.append(sentence)
+
+        if _followup_contains_any(lower, worse_words):
+            worsening.append(sentence)
+
+        if _followup_contains_any(lower, unchanged_words):
+            unchanged.append(sentence)
+
+        if _followup_contains_any(lower, new_words):
+            new_symptoms.append(sentence)
+
+    return improvement[:8], worsening[:8], unchanged[:8], new_symptoms[:8]
+
+
+def _red_flags_from_text(text: str) -> List[str]:
+    flags: List[str] = []
+
+    checks = {
+        "Chest pain or cardiac warning": ["chest pain", "বুকে ব্যথা"],
+        "Breathing difficulty": ["breathing difficulty", "shortness of breath", "শ্বাসকষ্ট"],
+        "Unconsciousness or severe weakness": ["unconscious", "অজ্ঞান", "severe weakness"],
+        "Bleeding": ["bleeding", "blood", "রক্তপাত", "রক্ত"],
+        "Rapid weight loss": ["rapid weight loss", "ওজন দ্রুত কমছে"],
+        "Breast lump/discharge warning": ["breast lump", "breast discharge", "স্তনে", "স্রাব"],
+        "Suicidal thought warning": ["suicidal", "kill myself", "আত্মহত্যা"],
+    }
+
+    for label, words in checks.items():
+        if _contains_non_negated(text, words):
+            flags.append(label)
+
+    return flags
+
+
+def _make_progress_items(
+    improvement: List[str],
+    worsening: List[str],
+    unchanged: List[str],
+    new_symptoms: List[str],
+) -> List[FollowUpProgressItemModel]:
+    items: List[FollowUpProgressItemModel] = []
+
+    for point in improvement:
+        items.append(
+            FollowUpProgressItemModel(
+                category="reported_change",
+                symptom=point[:180],
+                change_status="improved",
+                change_score=20,
+                evidence=point,
+            )
+        )
+
+    for point in worsening:
+        items.append(
+            FollowUpProgressItemModel(
+                category="reported_change",
+                symptom=point[:180],
+                change_status="worse",
+                change_score=-20,
+                evidence=point,
+            )
+        )
+
+    for point in unchanged:
+        items.append(
+            FollowUpProgressItemModel(
+                category="reported_change",
+                symptom=point[:180],
+                change_status="unchanged",
+                change_score=0,
+                evidence=point,
+            )
+        )
+
+    for point in new_symptoms:
+        items.append(
+            FollowUpProgressItemModel(
+                category="new_symptom",
+                symptom=point[:180],
+                change_status="new",
+                change_score=-10,
+                evidence=point,
+            )
+        )
+
+    return items[:20]
+
+
+def _response_level(
+    score: float,
+    improvement: List[str],
+    worsening: List[str],
+    new_symptoms: List[str],
+) -> str:
+    if score >= 30 and not worsening:
+        return "improved"
+
+    if score >= 10 and worsening:
+        return "mixed"
+
+    if score <= -30:
+        return "worse"
+
+    if new_symptoms and improvement:
+        return "mixed"
+
+    if new_symptoms and not improvement:
+        return "new_symptoms"
+
+    if -10 <= score <= 10:
+        return "same"
+
+    return "unclear"
 
 
 def build_missing_questions(sections: Dict[str, str], chief_complaint: Optional[str]) -> List[str]:
@@ -757,6 +1001,133 @@ def apply_missing_question_answer(
         case_section_updates=updates,
         raw_case_note=raw_note,
         extracted_summary=summary,
+    )
+
+
+@app.post("/follow-up/analyze", response_model=FollowUpAnalyzeResponse)
+def analyze_follow_up(payload: FollowUpAnalyzeRequest) -> FollowUpAnalyzeResponse:
+    previous_text = _text_from_visit(payload.previous_visit)
+    current_text = _text_from_visit(payload.current_visit)
+    improvement, worsening, unchanged, new_symptoms = _extract_progress_points(current_text)
+    red_flags = _red_flags_from_text(current_text)
+    progress_items = _make_progress_items(
+        improvement=improvement,
+        worsening=worsening,
+        unchanged=unchanged,
+        new_symptoms=new_symptoms,
+    )
+
+    progress_score = sum(float(item.change_score or 0) for item in progress_items)
+
+    if red_flags:
+        progress_score -= 15
+
+    progress_score = max(-100, min(100, progress_score))
+    response_level = _response_level(
+        score=progress_score,
+        improvement=improvement,
+        worsening=worsening,
+        new_symptoms=new_symptoms,
+    )
+
+    prescription = payload.prescription or {}
+    remedy_name = prescription.get("remedy_name") or "the prescribed remedy"
+    potency = prescription.get("potency") or ""
+    remedy_label = f"{remedy_name} {potency}".strip()
+
+    old_symptoms_returned: List[str] = []
+    if previous_text and current_text and _followup_contains_any(
+        current_text,
+        ["old symptom", "old symptoms", "পুরনো লক্ষণ", "পুরাতন লক্ষণ"],
+    ):
+        old_symptoms_returned.append(
+            "Patient reports return of old symptoms; review direction of cure carefully."
+        )
+
+    possible_aggravation_signs: List[str] = []
+    if _followup_contains_any(
+        current_text,
+        [
+            "aggravation",
+            "homeopathic aggravation",
+            "first worse",
+            "first two days",
+            "initially worse",
+            "প্রথমে বেড়েছে",
+            "প্রথমে বেড়েছে",
+            "শুরুতে বেড়েছে",
+            "শুরুতে বেড়েছে",
+        ],
+    ):
+        possible_aggravation_signs.append(
+            "Possible aggravation reported; confirm timing, intensity, duration, and general wellbeing."
+        )
+
+    analysis_summary = (
+        f"Follow-up response appears {response_level}. "
+        f"Reported improvements: {len(improvement)}, worsening points: {len(worsening)}, "
+        f"new symptoms: {len(new_symptoms)}, red flags: {len(red_flags)}."
+    )
+
+    remedy_response_assessment = (
+        f"Response after {remedy_label} is assessed as {response_level}. "
+        "This is only a clinical progress summary and not a prescription decision."
+    )
+
+    suggested_follow_up_questions = [
+        "What changed first after the prescription, and when did it happen?",
+        "How are energy, sleep, appetite, thirst, stool, and mood compared with the previous visit?",
+        "Did any old symptom return, and was it milder, shorter, or in reverse order?",
+        "Did any new symptom appear after the remedy, and how intense is it?",
+        "Was there any initial aggravation before improvement?",
+    ]
+
+    if red_flags:
+        suggested_follow_up_questions.insert(
+            0,
+            "Are the reported warning symptoms active now, severe, recurrent, or medically evaluated?",
+        )
+
+    doctor_review_points = [
+        "Compare generals and mental state before deciding whether to wait, repeat, or change plan.",
+        "Confirm whether changes are sustained or only temporary.",
+        "Review new symptoms separately from expected return of old symptoms.",
+    ]
+
+    recommended_next_steps = [
+        "Document intensity and duration for each changed symptom.",
+        "Use the symptom change matrix as supporting notes, not as an automatic prescription rule.",
+        "Practitioner should decide wait, repeat, potency change, remedy change, or referral.",
+    ]
+
+    if red_flags:
+        recommended_next_steps.insert(
+            0,
+            "Red flags detected: consider medical evaluation or referral where appropriate.",
+        )
+
+    safety_note = (
+        "This follow-up analysis is doctor-facing decision support only. It does not decide "
+        "repetition, potency, remedy change, or referral. Final decision must be made by the practitioner."
+    )
+
+    return FollowUpAnalyzeResponse(
+        response_level=response_level,
+        progress_score=round(progress_score, 2),
+        analysis_summary=analysis_summary,
+        remedy_response_assessment=remedy_response_assessment,
+        improvement_points=improvement,
+        worsening_points=worsening,
+        unchanged_points=unchanged,
+        new_symptoms=new_symptoms,
+        old_symptoms_returned=old_symptoms_returned,
+        possible_aggravation_signs=possible_aggravation_signs,
+        red_flags=red_flags,
+        suggested_follow_up_questions=suggested_follow_up_questions,
+        doctor_review_points=doctor_review_points,
+        recommended_next_steps=recommended_next_steps,
+        progress_items=progress_items,
+        safety_note=safety_note,
     )
 
 

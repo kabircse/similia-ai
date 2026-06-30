@@ -1283,6 +1283,114 @@ export async function generateRemedySuggestions(
   return response.data.data;
 }
 
+export type FollowUpResponseLevel =
+  | "improved"
+  | "same"
+  | "worse"
+  | "mixed"
+  | "aggravation"
+  | "new_symptoms"
+  | "unclear";
+
+export type FollowUpProgressItem = {
+  id: number;
+  follow_up_analysis_run_id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  category: string | null;
+  symptom: string;
+  change_status:
+    | "improved"
+    | "worse"
+    | "unchanged"
+    | "resolved"
+    | "new"
+    | "returned_old_symptom"
+    | string;
+  previous_intensity: number | null;
+  current_intensity: number | null;
+  change_score: string | number;
+  evidence: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type FollowUpAnalysisRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  previous_visit_id: number | null;
+  doctor_id: number;
+  prescription_id: number | null;
+  status: string;
+  response_level: FollowUpResponseLevel | null;
+  progress_score: string | number;
+  previous_case_snapshot: Record<string, unknown>;
+  current_case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  analysis_summary: string | null;
+  remedy_response_assessment: string | null;
+  improvement_points: string[];
+  worsening_points: string[];
+  unchanged_points: string[];
+  new_symptoms: string[];
+  old_symptoms_returned: string[];
+  possible_aggravation_signs: string[];
+  red_flags: string[];
+  suggested_follow_up_questions: string[];
+  doctor_review_points: string[];
+  recommended_next_steps: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  progress_items: FollowUpProgressItem[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type FollowUpAnalysisResponse = {
+  data: FollowUpAnalysisRun[];
+};
+
+export async function getFollowUpAnalyses(
+  patientId: string | number,
+  visitId: string | number
+): Promise<FollowUpAnalysisResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/follow-up-analyses`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generateFollowUpAnalysis(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    previous_visit_id?: number | null;
+    prescription_id?: number | null;
+    include_timeline_context?: boolean;
+    limit_previous_visits?: number;
+  }
+): Promise<FollowUpAnalysisRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/follow-up-analyses/generate`,
+    {
+      previous_visit_id: input?.previous_visit_id ?? null,
+      prescription_id: input?.prescription_id ?? null,
+      include_timeline_context: input?.include_timeline_context ?? true,
+      limit_previous_visits: input?.limit_previous_visits ?? 3,
+    }
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionSourceMethod =
   | "manual"
   | "weighted"
