@@ -32,7 +32,11 @@ class LegacyCsvReader
 
             if ($headers === null) {
                 $headers = array_map(
-                    fn ($header) => trim((string) $header),
+                    function ($header) {
+                        $header = trim((string) $header);
+
+                        return preg_replace('/^\xEF\xBB\xBF/', '', $header);
+                    },
                     $row
                 );
 

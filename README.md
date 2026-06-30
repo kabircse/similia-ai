@@ -551,6 +551,37 @@ Large CSV files under `apps/backend/database/imports/*.csv` are intentionally ig
 
 ---
 
+## Import Legacy Repertory Data
+
+Expected files:
+
+```text
+apps/backend/storage/app/imports/legacy/remedies.csv
+apps/backend/storage/app/imports/legacy/repertories.csv
+apps/backend/storage/app/imports/legacy/rubrics.csv
+apps/backend/storage/app/imports/legacy/rubric_remedies.csv
+```
+
+The import commands accept any path relative to `apps/backend`, so local ignored files in `apps/backend/database/imports` can also be imported directly.
+
+Import order:
+
+```bash
+cd apps/backend
+
+php artisan import:legacy-remedies storage/app/imports/legacy/remedies.csv --source=legacy_sql
+
+php artisan import:legacy-repertories storage/app/imports/legacy/repertories.csv --source=legacy_sql
+
+php artisan import:legacy-rubrics storage/app/imports/legacy/rubrics.csv --source=legacy_sql
+
+php artisan import:legacy-rubric-remedies storage/app/imports/legacy/rubric_remedies.csv --source=legacy_sql --remedy-source=legacy_sql
+```
+
+Root/chapter rubrics such as `Mind` are imported but marked as non-selectable. They are kept for hierarchy/search context, but hidden from normal rubric selection unless `include_non_selectable=true`.
+
+---
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)

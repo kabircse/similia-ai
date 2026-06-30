@@ -15,6 +15,18 @@ class RepertoryRubricController extends Controller
 
         $rubrics = RepertoryRubric::query()
             ->withCount('remedies')
+            ->when(
+                ! $request->boolean('include_non_selectable'),
+                fn ($query) => $query->where('is_selectable', true)
+            )
+            ->when(
+                $request->query('repertory_source_id'),
+                fn ($query, $sourceId) => $query->where('repertory_source_id', $sourceId)
+            )
+            ->when(
+                $request->query('chapter'),
+                fn ($query, $chapter) => $query->where('chapter', $chapter)
+            )
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query
