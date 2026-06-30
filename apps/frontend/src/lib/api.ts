@@ -678,10 +678,16 @@ export async function queueCaseStructuring(
 
 export type RepertoryRubric = {
   id: number;
+  repertory_source_id: number | null;
+  external_id: number | null;
+  external_repertory_id: number | null;
   source: string;
   chapter: string | null;
   rubric_path: string;
   rubric_text: string;
+  medicine_count: number;
+  default_weight: number;
+  is_selectable: boolean;
   page: number | null;
   remedies_count?: number;
 };

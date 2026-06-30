@@ -9,6 +9,10 @@ class RepertoryRubricRemedy extends Model
 {
     protected $fillable = [
         'import_key',
+        'repertory_source_id',
+        'external_id',
+        'external_rubric_id',
+        'external_remedy_id',
         'repertory_rubric_id',
         'remedy_id',
         'remedy_code',
@@ -19,9 +23,17 @@ class RepertoryRubricRemedy extends Model
     ];
 
     protected $casts = [
+        'external_id' => 'integer',
+        'external_rubric_id' => 'integer',
+        'external_remedy_id' => 'integer',
         'grade' => 'integer',
         'metadata' => 'array',
     ];
+
+    public function repertorySource(): BelongsTo
+    {
+        return $this->belongsTo(RepertorySource::class);
+    }
 
     public function rubric(): BelongsTo
     {
