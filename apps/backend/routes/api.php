@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\KnowledgeSearchController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientFeeController;
@@ -44,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllAsRead']);
     Route::get('/remedies', [RemedyController::class, 'index']);
     Route::get('/remedies/{remedy}', [RemedyController::class, 'show']);
+    Route::get('/knowledge/search', [KnowledgeSearchController::class, 'index']);
 
     Route::middleware('permission:manage_clinic_settings')->group(function () {
         Route::get('/clinic-settings', [ClinicSettingController::class, 'show']);
