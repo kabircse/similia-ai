@@ -1,5 +1,7 @@
 # Similia AI
 
+![CI](https://github.com/kabircse/similia-ai/actions/workflows/ci.yml/badge.svg)
+
 **AI Clinical Workspace for Classical Homeopaths**
 
 Similia AI is a production-style clinical workspace that helps a classical homeopathy practitioner move from raw patient symptoms to structured case-taking, rubric selection, repertorization, materia medica comparison, doctor-approved prescription, fee record, printable documents, and patient timeline.
