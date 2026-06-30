@@ -16,6 +16,7 @@ import {
 import { getMe, logout } from "../../lib/api";
 import { hasPermission } from "../../lib/permissions";
 import type { Permission } from "../../lib/api";
+import { NotificationBell } from "../notifications/NotificationBell";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -143,6 +144,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="user-menu">
+            <NotificationBell />
+
             <div className="user-meta">
               <strong>{data?.user.name}</strong>
               <span>{data?.user.role}</span>

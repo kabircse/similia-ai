@@ -1,0 +1,53 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('user_notifications', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->foreignId('patient_id')
+                ->nullable()
+                ->constrained('patients')
+                ->nullOnDelete();
+
+            $table->foreignId('patient_visit_id')
+                ->nullable()
+                ->constrained('patient_visits')
+                ->nullOnDelete();
+
+            $table->foreignId('ai_task_id')
+                ->nullable()
+                ->constrained('ai_tasks')
+                ->nullOnDelete();
+
+            $table->string('type')->default('info');
+            $table->string('category')->default('system');
+            $table->string('title');
+            $table->text('message')->nullable();
+            $table->string('action_url')->nullable();
+            $table->jsonb('metadata')->nullable();
+            $table->timestamp('read_at')->nullable();
+
+            $table->timestamps();
+
+            $table->index(['user_id', 'read_at']);
+            $table->index(['user_id', 'created_at']);
+            $table->index(['category', 'type']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('user_notifications');
+    }
+};

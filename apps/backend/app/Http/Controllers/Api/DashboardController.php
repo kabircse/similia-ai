@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Patient;
 use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
+use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,11 @@ class DashboardController extends Controller
         if ($user->role !== 'admin') {
             $recentActivityQuery->where('user_id', $user->id);
         }
+
+        $unreadNotifications = UserNotification::query()
+            ->where('user_id', $user->id)
+            ->whereNull('read_at')
+            ->count();
 
         $recentActivity = $recentActivityQuery
             ->limit(8)
@@ -68,6 +74,7 @@ class DashboardController extends Controller
                         ->whereDate('next_follow_up_date', '>=', now()->toDateString())
                         ->count(),
                     'prescriptions_saved' => $prescriptionQuery->count(),
+                    'unread_notifications' => $unreadNotifications,
                 ],
 
                 'clinical_workflow' => [

@@ -43,6 +43,7 @@ export type DashboardOverview = {
     today_visits: number;
     pending_followups: number;
     prescriptions_saved: number;
+    unread_notifications: number;
   };
   clinical_workflow: Array<{
     title: string;
@@ -92,6 +93,88 @@ export async function logout() {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const response = await api.get("/api/dashboard/overview");
   return response.data.data;
+}
+
+export type AiTask = {
+  id: number;
+  user_id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  type: "structure_case" | "compare_materia_medica" | string;
+  status: "queued" | "running" | "completed" | "failed" | string;
+  title: string;
+  message: string | null;
+  progress: number;
+  payload: Record<string, unknown>;
+  result: Record<string, unknown>;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type UserNotification = {
+  id: number;
+  user_id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  ai_task_id: number | null;
+  type: "info" | "success" | "warning" | "error" | string;
+  category: string;
+  title: string;
+  message: string | null;
+  action_url: string | null;
+  metadata: Record<string, unknown>;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string | null;
+};
+
+export type NotificationResponse = {
+  data: UserNotification[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getAiTask(taskId: string | number): Promise<AiTask> {
+  const response = await api.get(`/api/ai-tasks/${taskId}`);
+  return response.data.data;
+}
+
+export async function getNotifications(params?: {
+  unread_only?: boolean;
+}): Promise<NotificationResponse> {
+  const response = await api.get("/api/notifications", {
+    params: {
+      per_page: 10,
+      ...params,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const response = await api.get("/api/notifications/unread-count");
+  return response.data.data.unread_count;
+}
+
+export async function markNotificationAsRead(
+  notificationId: string | number
+): Promise<UserNotification> {
+  const response = await api.patch(`/api/notifications/${notificationId}/read`);
+  return response.data.data;
+}
+
+export async function markAllNotificationsAsRead() {
+  const response = await api.post("/api/notifications/read-all");
+  return response.data;
 }
 
 export type ClinicSetting = {
@@ -582,6 +665,17 @@ export async function structurePatientVisit(
   return response.data.data;
 }
 
+export async function queueCaseStructuring(
+  patientId: string | number,
+  visitId: string | number
+): Promise<AiTask> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/structure-case/async`
+  );
+
+  return response.data.data;
+}
+
 export type RepertoryRubric = {
   id: number;
   source: string;
@@ -840,6 +934,27 @@ export async function compareMateriaMedica(
     {
       method,
       limit: 3,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function queueMateriaMedicaComparison(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    repertorization_run_id?: number | null;
+    method?: MateriaMedicaMethod | "";
+    limit?: number;
+  }
+): Promise<AiTask> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/materia-medica/compare/async`,
+    {
+      repertorization_run_id: input?.repertorization_run_id || null,
+      method: input?.method || null,
+      limit: input?.limit ?? 3,
     }
   );
 
