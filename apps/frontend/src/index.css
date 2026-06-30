@@ -1804,9 +1804,134 @@ button:disabled {
   line-height: 1.6;
 }
 
+.question-conversation-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.conversation-start-row {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.conversation-start-row label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.conversation-box {
+  display: grid;
+  gap: 16px;
+}
+
+.conversation-progress {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.conversation-progress span {
+  color: #708074;
+  font-weight: 700;
+}
+
+.question-card {
+  border: 1px solid #d7dfd8;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.question-card.important {
+  border-color: #d9e8ff;
+  background: #f7fbff;
+}
+
+.question-card.red_flag {
+  border-color: #ffd3d3;
+  background: #fff8f8;
+}
+
+.question-card h4 {
+  margin: 0;
+  color: #102018;
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+.question-card textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+  font: inherit;
+  resize: vertical;
+}
+
+.question-card textarea:focus {
+  border-color: #145c43;
+  box-shadow: 0 0 0 3px rgba(20, 92, 67, 0.12);
+}
+
+.conversation-history {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.conversation-message {
+  border: 1px solid #edf0eb;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.conversation-message.assistant {
+  background: #f7fbff;
+}
+
+.conversation-message.doctor {
+  background: #f0fff4;
+}
+
+.conversation-message strong {
+  color: #102018;
+}
+
+.conversation-message p {
+  margin: 6px 0;
+  color: #425245;
+  line-height: 1.6;
+}
+
+.conversation-message small {
+  color: #708074;
+  font-weight: 700;
+}
+
 @media (max-width: 920px) {
   .voice-controls {
     grid-template-columns: 1fr;
+  }
+
+  .conversation-start-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .conversation-progress {
+    flex-direction: column;
   }
 }
 

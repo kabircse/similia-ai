@@ -124,6 +124,42 @@ class RemedySuggestResponse(BaseModel):
     engine: str
 
 
+class MissingQuestionConversationStartRequest(BaseModel):
+    language: str = "bn-BD"
+    max_questions: int = 10
+    raw_case_text: Optional[str] = None
+    chief_complaint: Optional[str] = None
+    case_sections: Dict[str, Any] = Field(default_factory=dict)
+    missing_questions: List[str] = Field(default_factory=list)
+    red_flags: List[str] = Field(default_factory=list)
+
+
+class MissingQuestionItem(BaseModel):
+    question_key: str
+    category: str
+    importance: str = "normal"
+    question: str
+
+
+class MissingQuestionConversationStartResponse(BaseModel):
+    questions: List[MissingQuestionItem]
+    safety_note: str
+
+
+class MissingQuestionApplyAnswerRequest(BaseModel):
+    question_key: Optional[str] = None
+    category: Optional[str] = None
+    question: str
+    answer: str
+    existing_case_sections: Dict[str, Any] = Field(default_factory=dict)
+
+
+class MissingQuestionApplyAnswerResponse(BaseModel):
+    case_section_updates: Dict[str, Any] = Field(default_factory=dict)
+    raw_case_note: str
+    extracted_summary: str
+
+
 def append_text(current: str, value: str) -> str:
     if not value:
         return current
@@ -298,6 +334,115 @@ def _source_chunks(
         )
 
     return chunks
+
+
+def _lang_bn(language: Optional[str]) -> bool:
+    return (language or "").lower().startswith("bn")
+
+
+def _question_key(text: str, index: int) -> str:
+    base = "".join(ch.lower() if ch.isalnum() else "_" for ch in text[:40])
+    base = "_".join([part for part in base.split("_") if part])
+    return f"q_{index + 1}_{base or 'question'}"
+
+
+def _category_from_question(question: str) -> str:
+    q = question.lower()
+
+    if any(word in q for word in ["thermal", "hot", "cold", "chilly", "শীত", "গরম"]):
+        return "thermal_state"
+
+    if any(word in q for word in ["thirst", "পিপাসা"]):
+        return "thirst"
+
+    if any(word in q for word in ["better", "worse", "aggrav", "amelior", "modalit", "বাড়ে", "কমে"]):
+        return "modalities"
+
+    if any(word in q for word in ["fear", "anxiety", "mind", "mental", "ভয়", "মন", "অস্থির"]):
+        return "mentals"
+
+    if any(word in q for word in ["dream", "স্বপ্ন"]):
+        return "dreams"
+
+    if any(word in q for word in ["sleep", "ঘুম"]):
+        return "sleep"
+
+    if any(word in q for word in ["food", "desire", "খাবার", "পছন্দ"]):
+        return "food_desires"
+
+    if any(word in q for word in ["aversion", "অপছন্দ"]):
+        return "food_aversions"
+
+    if any(word in q for word in ["stool", "পায়খানা"]):
+        return "stool"
+
+    if any(word in q for word in ["urine", "প্রস্রাব"]):
+        return "urine"
+
+    if any(word in q for word in ["menses", "period", "menstrual", "মাসিক"]):
+        return "menses"
+
+    if any(word in q for word in ["breast", "discharge", "স্তন", "স্রাব"]):
+        return "female_symptoms"
+
+    return "general_case_detail"
+
+
+def _default_questions(language: str) -> List[str]:
+    if _lang_bn(language):
+        return [
+            "রোগীর গরমে বেশি কষ্ট হয় নাকি শীতে বেশি কষ্ট হয়?",
+            "পিপাসা কেমন—কম, বেশি, নাকি স্বাভাবিক?",
+            "কোন জিনিসে উপসর্গ বাড়ে এবং কোন জিনিসে কমে?",
+            "রোগীর প্রধান ভয়, দুশ্চিন্তা বা মানসিক পরিবর্তন কী?",
+            "ঘুম, স্বপ্ন এবং ঘুম থেকে ওঠার পর অনুভূতি কেমন?",
+            "খাবারের পছন্দ-অপছন্দ, মিষ্টি/ঝাল/ডিম/দুধের প্রতি আকর্ষণ আছে কি?",
+            "পায়খানা ও প্রস্রাবের কোনো পরিবর্তন আছে কি?",
+            "যদি নারী রোগী হন, মাসিক, স্তন বা স্রাব সংক্রান্ত কোনো উপসর্গ আছে কি?",
+        ]
+
+    return [
+        "Is the patient generally worse from heat or cold?",
+        "How is the thirst: low, increased, or normal?",
+        "What makes the complaint worse and what makes it better?",
+        "What are the main fears, anxieties, or mental changes?",
+        "How are sleep, dreams, and waking condition?",
+        "Any food desires or aversions such as sweets, spicy food, eggs, milk?",
+        "Any change in stool or urine?",
+        "For female patients, any menstrual, breast, or discharge symptoms?",
+    ]
+
+
+def _answer_category_update(
+    category: str,
+    question: str,
+    answer: str,
+    existing_case_sections: Dict[str, Any],
+) -> Dict[str, Any]:
+    updates: Dict[str, Any] = {}
+
+    existing_answers = existing_case_sections.get("missing_question_answers") or {}
+    if not isinstance(existing_answers, dict):
+        existing_answers = {}
+
+    return_updates_key = category if category in CASE_SECTION_KEYS else "reports_note"
+
+    if category == "medical_safety":
+        existing_safety = existing_case_sections.get("medical_safety_notes") or []
+        if not isinstance(existing_safety, list):
+            existing_safety = [str(existing_safety)]
+
+        existing_safety.append(f"{question} Answer: {answer}")
+        updates["medical_safety_notes"] = existing_safety
+    elif category == "female_symptoms":
+        updates["menses"] = append_text(str(existing_case_sections.get("menses", "") or ""), answer)
+    elif category == "general_case_detail":
+        updates["generals"] = append_text(str(existing_case_sections.get("generals", "") or ""), answer)
+    else:
+        current = str(existing_case_sections.get(return_updates_key, "") or "")
+        updates[return_updates_key] = append_text(current, answer)
+
+    return updates
 
 
 def build_missing_questions(sections: Dict[str, str], chief_complaint: Optional[str]) -> List[str]:
@@ -516,6 +661,103 @@ def health():
 @app.post("/case/structure")
 def structure_case_endpoint(payload: CaseStructureRequest):
     return {"data": structure_case(payload)}
+
+
+@app.post(
+    "/case/missing-question-conversation/start",
+    response_model=MissingQuestionConversationStartResponse,
+)
+def start_missing_question_conversation(
+    payload: MissingQuestionConversationStartRequest,
+) -> MissingQuestionConversationStartResponse:
+    questions: List[MissingQuestionItem] = []
+    source_questions = payload.missing_questions or _default_questions(payload.language)
+
+    for index, question in enumerate(source_questions[: payload.max_questions]):
+        category = _category_from_question(question)
+        questions.append(
+            MissingQuestionItem(
+                question_key=_question_key(question, index),
+                category=category,
+                importance=(
+                    "important"
+                    if category in ["mentals", "modalities", "thermal_state"]
+                    else "normal"
+                ),
+                question=question,
+            )
+        )
+
+    for red_index, red_flag in enumerate(payload.red_flags[:3]):
+        if _lang_bn(payload.language):
+            question = (
+                f"রেড ফ্ল্যাগ যাচাই: {red_flag} — এ বিষয়ে মেডিক্যাল "
+                "মূল্যায়ন/রিপোর্ট/ডাক্তারের পরামর্শ হয়েছে কি?"
+            )
+        else:
+            question = (
+                f"Red flag check: {red_flag}. Has this been medically "
+                "evaluated or investigated?"
+            )
+
+        questions.append(
+            MissingQuestionItem(
+                question_key=f"red_flag_{red_index + 1}",
+                category="medical_safety",
+                importance="red_flag",
+                question=question,
+            )
+        )
+
+    safety_note = (
+        "This missing-question conversation is for doctor-side case completion only. "
+        "It does not prescribe medicine."
+    )
+
+    return MissingQuestionConversationStartResponse(
+        questions=questions[: payload.max_questions],
+        safety_note=safety_note,
+    )
+
+
+@app.post(
+    "/case/missing-question-conversation/apply-answer",
+    response_model=MissingQuestionApplyAnswerResponse,
+)
+def apply_missing_question_answer(
+    payload: MissingQuestionApplyAnswerRequest,
+) -> MissingQuestionApplyAnswerResponse:
+    category = payload.category or _category_from_question(payload.question)
+    question_key = payload.question_key or "question"
+    answer = payload.answer.strip()
+    question = payload.question.strip()
+
+    updates = _answer_category_update(
+        category=category,
+        question=question,
+        answer=answer,
+        existing_case_sections=payload.existing_case_sections,
+    )
+
+    existing_answers = payload.existing_case_sections.get("missing_question_answers") or {}
+    if not isinstance(existing_answers, dict):
+        existing_answers = {}
+
+    existing_answers[question_key] = {
+        "category": category,
+        "question": question,
+        "answer": answer,
+    }
+    updates["missing_question_answers"] = existing_answers
+
+    raw_note = f"Q: {question}\nA: {answer}"
+    summary = f"Answer saved under {category}: {answer[:220]}"
+
+    return MissingQuestionApplyAnswerResponse(
+        case_section_updates=updates,
+        raw_case_note=raw_note,
+        extracted_summary=summary,
+    )
 
 
 @app.post("/materia-medica/compare")

@@ -71,4 +71,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(VoiceTranscript::class);
     }
+
+    public function questionSessions(): HasMany
+    {
+        return $this->hasMany(CaseQuestionSession::class);
+    }
 }

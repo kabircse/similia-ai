@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AiTaskController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CaseQuestionConversationController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\DashboardController;
@@ -79,6 +80,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get(
         '/patients/{patient}/visits/{visit}/voice-transcripts/{voiceTranscript}',
         [VoiceTranscriptController::class, 'show']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/question-sessions',
+        [CaseQuestionConversationController::class, 'index']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/question-sessions/start',
+        [CaseQuestionConversationController::class, 'start']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/question-sessions/{questionSession}',
+        [CaseQuestionConversationController::class, 'show']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/question-sessions/{questionSession}/answer',
+        [CaseQuestionConversationController::class, 'answer']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/question-sessions/{questionSession}/complete',
+        [CaseQuestionConversationController::class, 'complete']
     )->middleware('permission:manage_visits');
 
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);
