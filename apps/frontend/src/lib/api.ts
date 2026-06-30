@@ -975,6 +975,7 @@ export type PatientPrescription = {
 
   repertorization_run_id: number | null;
   repertorization_result_id: number | null;
+  remedy_id: number | null;
   source_method: PrescriptionSourceMethod | null;
 
   remedy_code: string | null;

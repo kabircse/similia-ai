@@ -1,4 +1,9 @@
 *
 !private/
 !public/
+!imports/
+imports/*
+!imports/legacy/
+imports/legacy/*
+!imports/legacy/.gitkeep
 !.gitignore

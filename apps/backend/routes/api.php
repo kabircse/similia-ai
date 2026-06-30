@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\PatientPrescriptionController;
 use App\Http\Controllers\Api\PatientTimelineController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
+use App\Http\Controllers\Api\RemedyController;
 use App\Http\Controllers\Api\RepertorizationController;
 use App\Http\Controllers\Api\RepertoryRubricController;
 use App\Http\Controllers\Api\UserNotificationController;
@@ -41,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count', [UserNotificationController::class, 'unreadCount']);
     Route::patch('/notifications/{notification}/read', [UserNotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllAsRead']);
+    Route::get('/remedies', [RemedyController::class, 'index']);
+    Route::get('/remedies/{remedy}', [RemedyController::class, 'show']);
 
     Route::middleware('permission:manage_clinic_settings')->group(function () {
         Route::get('/clinic-settings', [ClinicSettingController::class, 'show']);

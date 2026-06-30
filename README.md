@@ -501,6 +501,56 @@ python -m compileall app
 
 ---
 
+## Legacy Knowledge Import Foundation
+
+Similia AI supports a remedy master table and legacy import foundation.
+
+### Import Legacy Remedies CSV
+
+Place the file here:
+
+```text
+apps/backend/storage/app/imports/legacy/remedies.csv
+```
+
+CSV format:
+
+```csv
+id,name,abbreviation
+1,Abies Canadensis,Abies-c.
+2,Abies Nigra,Abies-n.
+3,Abrotanum,Abrot.
+```
+
+Dry run:
+
+```bash
+cd apps/backend
+php artisan import:legacy-remedies storage/app/imports/legacy/remedies.csv --source=legacy_sql --dry-run
+```
+
+Import:
+
+```bash
+php artisan import:legacy-remedies storage/app/imports/legacy/remedies.csv --source=legacy_sql
+```
+
+Backfill current repertory, materia medica, and prescription rows:
+
+```bash
+php artisan remedies:backfill-existing
+```
+
+Search:
+
+```text
+GET /api/remedies?q=Abrot
+```
+
+Large CSV files under `apps/backend/database/imports/*.csv` are intentionally ignored and should not be committed.
+
+---
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)

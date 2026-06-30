@@ -20,6 +20,8 @@ dist/
 /apps/backend/storage/*.key
 /apps/backend/storage/logs/*
 /apps/backend/bootstrap/cache/*.php
+/apps/backend/database/imports/*.csv
+!/apps/backend/database/imports/.gitkeep
 
 # Local docs
 /docs/local-info.md
