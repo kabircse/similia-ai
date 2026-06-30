@@ -11,6 +11,7 @@ import {
   Receipt,
   Settings,
   LogOut,
+  Activity,
 } from "lucide-react";
 import { getMe, logout } from "../../lib/api";
 
@@ -26,6 +27,7 @@ const navItems = [
   { label: "Materia Medica", path: "/materia-medica", icon: BookOpen },
   { label: "Prescriptions", path: "/prescriptions", icon: FileText },
   { label: "Fees", path: "/fees", icon: Receipt },
+  { label: "Activity", path: "/activity", icon: Activity },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 

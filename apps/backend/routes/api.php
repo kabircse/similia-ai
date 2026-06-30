@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/activity-logs', [AuditLogController::class, 'index']);
     Route::apiResource('patients', PatientController::class);
     Route::get('/patients/{patient}/timeline', [PatientTimelineController::class, 'index']);
     Route::apiResource('patients.visits', PatientVisitController::class);

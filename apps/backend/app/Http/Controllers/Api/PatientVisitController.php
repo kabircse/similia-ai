@@ -8,6 +8,7 @@ use App\Http\Requests\UpdatePatientVisitRequest;
 use App\Http\Resources\PatientVisitResource;
 use App\Models\Patient;
 use App\Models\PatientVisit;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,7 +26,11 @@ class PatientVisitController extends Controller
         return PatientVisitResource::collection($visits);
     }
 
-    public function store(StorePatientVisitRequest $request, Patient $patient): PatientVisitResource
+    public function store(
+        StorePatientVisitRequest $request,
+        Patient $patient,
+        AuditLogger $auditLogger
+    ): PatientVisitResource
     {
         $this->ensureCanAccessPatient($request, $patient);
 
@@ -37,6 +42,22 @@ class PatientVisitController extends Controller
             'missing_questions' => [],
             'red_flags' => [],
         ]);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'visit',
+            action: 'created',
+            title: 'Visit created',
+            description: $visit->chief_complaint,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit,
+            metadata: [
+                'visit_date' => $visit->visit_date?->toDateString(),
+                'visit_type' => $visit->visit_type,
+                'status' => $visit->status,
+            ]
+        );
 
         return new PatientVisitResource($visit);
     }
@@ -51,7 +72,8 @@ class PatientVisitController extends Controller
     public function update(
         UpdatePatientVisitRequest $request,
         Patient $patient,
-        PatientVisit $visit
+        PatientVisit $visit,
+        AuditLogger $auditLogger
     ): PatientVisitResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -60,12 +82,50 @@ class PatientVisitController extends Controller
             'case_sections' => $request->validated('case_sections') ?? [],
         ]);
 
-        return new PatientVisitResource($visit->fresh());
+        $visit = $visit->fresh();
+
+        $auditLogger->log(
+            request: $request,
+            category: 'visit',
+            action: 'updated',
+            title: 'Visit updated',
+            description: $visit->chief_complaint,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit,
+            metadata: [
+                'visit_date' => $visit->visit_date?->toDateString(),
+                'visit_type' => $visit->visit_type,
+                'status' => $visit->status,
+                'case_source' => $visit->case_source,
+            ]
+        );
+
+        return new PatientVisitResource($visit);
     }
 
-    public function destroy(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function destroy(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'visit',
+            action: 'deleted',
+            title: 'Visit deleted',
+            description: $visit->chief_complaint,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit,
+            metadata: [
+                'visit_date' => $visit->visit_date?->toDateString(),
+            ]
+        );
 
         $visit->delete();
 

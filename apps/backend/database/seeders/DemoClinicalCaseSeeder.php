@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditLog;
 use App\Models\CaseRubric;
 use App\Models\Patient;
 use App\Models\PatientFee;
@@ -217,6 +218,26 @@ class DemoClinicalCaseSeeder extends Seeder
                 'payment_status' => 'paid',
                 'payment_date' => now()->toDateString(),
                 'note' => 'Demo fee record.',
+            ]
+        );
+
+        AuditLog::updateOrCreate(
+            [
+                'user_id' => $doctor->id,
+                'patient_id' => $patient->id,
+                'patient_visit_id' => $visit->id,
+                'category' => 'demo',
+                'action' => 'created',
+                'title' => 'Demo clinical workflow created',
+            ],
+            [
+                'entity_type' => PatientVisit::class,
+                'entity_id' => $visit->id,
+                'description' => 'Demo patient, visit, rubrics, repertorization, prescription, fee, print, and timeline are ready.',
+                'metadata' => [
+                    'patient_name' => $patient->name,
+                    'visit_date' => $visit->visit_date?->toDateString(),
+                ],
             ]
         );
     }

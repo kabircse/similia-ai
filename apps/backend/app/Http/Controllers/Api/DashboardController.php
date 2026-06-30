@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Patient;
-use App\Models\PatientFee;
 use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
 use Illuminate\Http\JsonResponse;
@@ -28,51 +28,27 @@ class DashboardController extends Controller
             $prescriptionQuery->where('doctor_id', $user->id);
         }
 
-        $recentVisitQuery = PatientVisit::query()
-            ->with('patient')
-            ->latest();
-
-        $recentPrescriptionQuery = PatientPrescription::query()
-            ->with('patient')
-            ->latest();
-
-        $recentFeeQuery = PatientFee::query()
-            ->with('patient')
+        $recentActivityQuery = AuditLog::query()
+            ->with(['patient', 'visit'])
             ->latest();
 
         if ($user->role !== 'admin') {
-            $recentVisitQuery->where('doctor_id', $user->id);
-            $recentPrescriptionQuery->where('doctor_id', $user->id);
-            $recentFeeQuery->where('doctor_id', $user->id);
+            $recentActivityQuery->where('user_id', $user->id);
         }
 
-        $recentActivity = collect()
-            ->merge(
-                $recentVisitQuery->limit(5)->get()->map(fn ($visit) => [
-                    'type' => 'visit',
-                    'title' => 'Visit created',
-                    'description' => ($visit->patient?->name ?? 'Patient').' - '.($visit->chief_complaint ?: 'No complaint added'),
-                    'created_at' => $visit->created_at?->toISOString(),
-                ])
-            )
-            ->merge(
-                $recentPrescriptionQuery->limit(5)->get()->map(fn ($prescription) => [
-                    'type' => 'prescription',
-                    'title' => 'Prescription saved',
-                    'description' => ($prescription->patient?->name ?? 'Patient').' - '.$prescription->remedy_name.' '.$prescription->potency,
-                    'created_at' => $prescription->created_at?->toISOString(),
-                ])
-            )
-            ->merge(
-                $recentFeeQuery->limit(5)->get()->map(fn ($fee) => [
-                    'type' => 'fee',
-                    'title' => 'Fee recorded',
-                    'description' => ($fee->patient?->name ?? 'Patient').' - '.$fee->currency.' '.$fee->total_amount.' / '.$fee->payment_status,
-                    'created_at' => $fee->created_at?->toISOString(),
-                ])
-            )
-            ->sortByDesc('created_at')
-            ->take(8)
+        $recentActivity = $recentActivityQuery
+            ->limit(8)
+            ->get()
+            ->map(fn ($log) => [
+                'type' => $log->category,
+                'action' => $log->action,
+                'title' => $log->title,
+                'description' => $log->description,
+                'patient_id' => $log->patient_id,
+                'patient_name' => $log->patient?->name,
+                'patient_visit_id' => $log->patient_visit_id,
+                'created_at' => $log->created_at?->toISOString(),
+            ])
             ->values();
 
         return response()->json([

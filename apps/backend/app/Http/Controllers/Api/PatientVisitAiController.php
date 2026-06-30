@@ -7,6 +7,7 @@ use App\Http\Requests\StructurePatientVisitRequest;
 use App\Http\Resources\PatientVisitResource;
 use App\Models\Patient;
 use App\Models\PatientVisit;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
@@ -15,7 +16,8 @@ class PatientVisitAiController extends Controller
     public function structure(
         StructurePatientVisitRequest $request,
         Patient $patient,
-        PatientVisit $visit
+        PatientVisit $visit,
+        AuditLogger $auditLogger
     ): PatientVisitResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -63,7 +65,24 @@ class PatientVisitAiController extends Controller
             'red_flags' => $data['red_flags'] ?? [],
         ]);
 
-        return new PatientVisitResource($visit->fresh());
+        $visit = $visit->fresh();
+
+        $auditLogger->log(
+            request: $request,
+            category: 'ai',
+            action: 'structured_case',
+            title: 'AI case structuring completed',
+            description: $visit->chief_complaint,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit,
+            metadata: [
+                'missing_questions_count' => count($visit->missing_questions ?? []),
+                'red_flags_count' => count($visit->red_flags ?? []),
+            ]
+        );
+
+        return new PatientVisitResource($visit);
     }
 
     private function mergeCaseSections(array $existing, array $incoming, bool $overwrite): array

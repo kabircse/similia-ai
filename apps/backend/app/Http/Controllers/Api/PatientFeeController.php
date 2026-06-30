@@ -8,6 +8,7 @@ use App\Http\Resources\PatientFeeResource;
 use App\Models\Patient;
 use App\Models\PatientFee;
 use App\Models\PatientVisit;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,7 +30,8 @@ class PatientFeeController extends Controller
     public function save(
         SavePatientFeeRequest $request,
         Patient $patient,
-        PatientVisit $visit
+        PatientVisit $visit,
+        AuditLogger $auditLogger
     ): PatientFeeResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -77,10 +79,36 @@ class PatientFeeController extends Controller
             ]
         );
 
-        return new PatientFeeResource($fee->fresh());
+        $fee = $fee->fresh();
+
+        $auditLogger->log(
+            request: $request,
+            category: 'fee',
+            action: 'saved',
+            title: 'Fee record saved',
+            description: $fee->currency.' '.$fee->total_amount.' / '.$fee->payment_status,
+            patient: $patient,
+            visit: $visit,
+            entity: $fee,
+            metadata: [
+                'currency' => $fee->currency,
+                'total_amount' => $fee->total_amount,
+                'paid_amount' => $fee->paid_amount,
+                'due_amount' => $fee->due_amount,
+                'payment_status' => $fee->payment_status,
+                'payment_method' => $fee->payment_method,
+            ]
+        );
+
+        return new PatientFeeResource($fee);
     }
 
-    public function destroy(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function destroy(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -89,6 +117,17 @@ class PatientFeeController extends Controller
             ->first();
 
         if ($fee) {
+            $auditLogger->log(
+                request: $request,
+                category: 'fee',
+                action: 'deleted',
+                title: 'Fee record deleted',
+                description: $fee->currency.' '.$fee->total_amount,
+                patient: $patient,
+                visit: $visit,
+                entity: $fee
+            );
+
             $fee->delete();
         }
 

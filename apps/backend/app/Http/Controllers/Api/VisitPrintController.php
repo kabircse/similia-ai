@@ -6,12 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class VisitPrintController extends Controller
 {
-    public function caseSheet(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function caseSheet(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -32,6 +38,17 @@ class VisitPrintController extends Controller
             })
             ->filter()
             ->values();
+
+        $auditLogger->log(
+            request: $request,
+            category: 'print',
+            action: 'opened_case_sheet',
+            title: 'Case sheet print opened',
+            description: $visit->chief_complaint,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit
+        );
 
         return response()->json([
             'data' => [
@@ -131,11 +148,27 @@ class VisitPrintController extends Controller
         ]);
     }
 
-    public function prescription(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
+    public function prescription(
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        AuditLogger $auditLogger
+    ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
         $visit->load(['prescription']);
+
+        $auditLogger->log(
+            request: $request,
+            category: 'print',
+            action: 'opened_prescription',
+            title: 'Prescription print opened',
+            description: $visit->prescription?->remedy_name,
+            patient: $patient,
+            visit: $visit,
+            entity: $visit
+        );
 
         return response()->json([
             'data' => [

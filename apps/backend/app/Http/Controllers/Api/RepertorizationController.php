@@ -8,6 +8,7 @@ use App\Http\Resources\RepertorizationRunResource;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
+use App\Services\Audit\AuditLogger;
 use App\Services\Repertorization\CrossRepertorizationEngine;
 use App\Services\Repertorization\EliminativeRepertorizationEngine;
 use App\Services\Repertorization\WeightedRepertorizationEngine;
@@ -48,7 +49,8 @@ class RepertorizationController extends Controller
         RunWeightedRepertorizationRequest $request,
         Patient $patient,
         PatientVisit $visit,
-        WeightedRepertorizationEngine $engine
+        WeightedRepertorizationEngine $engine,
+        AuditLogger $auditLogger
     ): RepertorizationRunResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -56,6 +58,15 @@ class RepertorizationController extends Controller
             visit: $visit,
             doctor: $request->user(),
             settings: $request->validated('settings') ?? []
+        );
+
+        $this->logRepertorizationRun(
+            $auditLogger,
+            $request,
+            $patient,
+            $visit,
+            $run,
+            'Weighted repertorization run'
         );
 
         return new RepertorizationRunResource($run->load('results'));
@@ -65,7 +76,8 @@ class RepertorizationController extends Controller
         RunWeightedRepertorizationRequest $request,
         Patient $patient,
         PatientVisit $visit,
-        CrossRepertorizationEngine $engine
+        CrossRepertorizationEngine $engine,
+        AuditLogger $auditLogger
     ): RepertorizationRunResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -73,6 +85,15 @@ class RepertorizationController extends Controller
             visit: $visit,
             doctor: $request->user(),
             settings: $request->validated('settings') ?? []
+        );
+
+        $this->logRepertorizationRun(
+            $auditLogger,
+            $request,
+            $patient,
+            $visit,
+            $run,
+            'Cross repertorization run'
         );
 
         return new RepertorizationRunResource($run->load('results'));
@@ -82,7 +103,8 @@ class RepertorizationController extends Controller
         RunWeightedRepertorizationRequest $request,
         Patient $patient,
         PatientVisit $visit,
-        EliminativeRepertorizationEngine $engine
+        EliminativeRepertorizationEngine $engine,
+        AuditLogger $auditLogger
     ): RepertorizationRunResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
@@ -92,7 +114,42 @@ class RepertorizationController extends Controller
             settings: $request->validated('settings') ?? []
         );
 
+        $this->logRepertorizationRun(
+            $auditLogger,
+            $request,
+            $patient,
+            $visit,
+            $run,
+            'Eliminative repertorization run'
+        );
+
         return new RepertorizationRunResource($run->load('results'));
+    }
+
+    private function logRepertorizationRun(
+        AuditLogger $auditLogger,
+        Request $request,
+        Patient $patient,
+        PatientVisit $visit,
+        RepertorizationRun $run,
+        string $title
+    ): void {
+        $auditLogger->log(
+            request: $request,
+            category: 'repertorization',
+            action: 'ran',
+            title: $title,
+            description: $title.' completed.',
+            patient: $patient,
+            visit: $visit,
+            entity: $run,
+            metadata: [
+                'method' => $run->method,
+                'total_rubrics' => $run->total_rubrics,
+                'essential_rubrics_count' => $run->essential_rubrics_count,
+                'results_count' => $run->results()->count(),
+            ]
+        );
     }
 
     private function ensureCanAccessVisit(Request $request, Patient $patient, PatientVisit $visit): void
