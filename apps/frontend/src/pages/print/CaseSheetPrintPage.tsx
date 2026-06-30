@@ -36,6 +36,14 @@ export function CaseSheetPrintPage() {
     return <div className="print-loading">Unable to load case sheet.</div>;
   }
 
+  const clinicContact = [
+    data.clinic.phone,
+    data.clinic.email,
+    data.clinic.website,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+
   return (
     <main className="print-page">
       <div className="print-actions no-print">
@@ -51,11 +59,18 @@ export function CaseSheetPrintPage() {
 
       <article className="print-sheet">
         <header className="print-header">
-          <div>
+          <div className="print-clinic-heading">
+            {data.clinic.logo_url && (
+              <img
+                src={data.clinic.logo_url}
+                alt=""
+                className="print-clinic-logo"
+              />
+            )}
             <h1>{data.clinic.name}</h1>
             <p>{data.clinic.tagline}</p>
             {data.clinic.address && <p>{data.clinic.address}</p>}
-            {data.clinic.phone && <p>{data.clinic.phone}</p>}
+            {clinicContact && <p>{clinicContact}</p>}
           </div>
 
           <div className="print-doc-title">
@@ -308,9 +323,18 @@ export function CaseSheetPrintPage() {
         </Section>
 
         <footer className="print-footer">
-          <p>Doctor: {data.doctor.name}</p>
+          <div>
+            <p>Doctor: {data.doctor.name}</p>
+            {data.doctor.qualification && <p>{data.doctor.qualification}</p>}
+          </div>
           <p>Signature: __________________________</p>
         </footer>
+
+        {data.clinic.case_sheet_footer && (
+          <footer className="print-footer-note">
+            {data.clinic.case_sheet_footer}
+          </footer>
+        )}
       </article>
     </main>
   );

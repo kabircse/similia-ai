@@ -26,6 +26,14 @@ export function PrescriptionPrintPage() {
     return <div className="print-loading">Unable to load prescription.</div>;
   }
 
+  const clinicContact = [
+    data.clinic.phone,
+    data.clinic.email,
+    data.clinic.website,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+
   return (
     <main className="print-page">
       <div className="print-actions no-print">
@@ -41,11 +49,18 @@ export function PrescriptionPrintPage() {
 
       <article className="print-sheet prescription-sheet">
         <header className="print-header">
-          <div>
+          <div className="print-clinic-heading">
+            {data.clinic.logo_url && (
+              <img
+                src={data.clinic.logo_url}
+                alt=""
+                className="print-clinic-logo"
+              />
+            )}
             <h1>{data.clinic.name}</h1>
             <p>{data.clinic.tagline}</p>
             {data.clinic.address && <p>{data.clinic.address}</p>}
-            {data.clinic.phone && <p>{data.clinic.phone}</p>}
+            {clinicContact && <p>{clinicContact}</p>}
           </div>
 
           <div className="print-doc-title">
@@ -131,6 +146,7 @@ export function PrescriptionPrintPage() {
             <p>
               <strong>Doctor:</strong> {data.doctor.name}
             </p>
+            {data.doctor.qualification && <p>{data.doctor.qualification}</p>}
             <p>{data.doctor.email}</p>
           </div>
 
@@ -139,6 +155,12 @@ export function PrescriptionPrintPage() {
             <p>__________________________</p>
           </div>
         </footer>
+
+        {data.clinic.prescription_footer && (
+          <section className="print-section print-footer-note">
+            <p className="print-paragraph">{data.clinic.prescription_footer}</p>
+          </section>
+        )}
       </article>
     </main>
   );
