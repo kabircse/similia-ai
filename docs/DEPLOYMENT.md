@@ -2,10 +2,12 @@
 
 ## Production Stack
 
-- Nginx reverse proxy
+- Caddy HTTPS reverse proxy
 - React frontend static container
 - Laravel API PHP-FPM container
 - Laravel backend Nginx container
+- Laravel queue worker container
+- Laravel scheduler container
 - FastAPI AI service container
 - PostgreSQL pgvector
 - Redis
@@ -21,6 +23,8 @@ cp .env.production.example .env.production
 Update:
 
 - `APP_KEY`
+- `APP_DOMAIN`
+- `ACME_EMAIL`
 - `APP_URL`
 - `FRONTEND_URL`
 - `POSTGRES_PASSWORD`
@@ -54,6 +58,49 @@ By default, the script pulls `main`. To deploy from another branch:
 DEPLOY_BRANCH=dev ./scripts/deploy-prod.sh
 ```
 
+## HTTPS with Caddy
+
+Production HTTPS is handled by Caddy.
+
+Caddy automatically requests and renews TLS certificates when:
+
+- `APP_DOMAIN` is a real domain
+- DNS points to the VPS IP
+- ports `80` and `443` are open
+- `ACME_EMAIL` is set
+
+Example production env:
+
+```env
+APP_DOMAIN=similia.example.com
+ACME_EMAIL=admin@example.com
+APP_URL=https://similia.example.com
+FRONTEND_URL=https://similia.example.com
+SESSION_DOMAIN=similia.example.com
+SESSION_SECURE_COOKIE=true
+SANCTUM_STATEFUL_DOMAINS=similia.example.com,www.similia.example.com
+```
+
+Start:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+```
+
+Check Caddy logs:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f proxy
+```
+
+If HTTPS does not work, check:
+
+- domain DNS A record
+- VPS firewall
+- ports `80` and `443`
+- `APP_DOMAIN` value
+- Caddy logs
+
 ## Migrate
 
 ```bash
@@ -68,6 +115,44 @@ Run this only for a demo deployment:
 docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan db:seed --force
 ```
 
+## Queue Workers
+
+Production queue worker service:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend-queue
+```
+
+Production scheduler service:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend-scheduler
+```
+
+Restart queue workers:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan queue:restart
+```
+
+Check queue health:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan queue:health
+```
+
+List failed jobs:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan queue:failed
+```
+
+Retry failed jobs:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan queue:retry all
+```
+
 ## Logs
 
 ```bash
@@ -79,6 +164,8 @@ For a single service:
 ```bash
 docker compose --env-file .env.production -f docker-compose.prod.yml logs -f proxy
 docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend-queue
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend-scheduler
 docker compose --env-file .env.production -f docker-compose.prod.yml logs -f ai-service
 ```
 
@@ -101,6 +188,8 @@ cp .env.production.example .env.production
 Use these local values:
 
 ```env
+APP_DOMAIN=:80
+ACME_EMAIL=admin@example.com
 APP_URL=http://localhost
 FRONTEND_URL=http://localhost
 SESSION_DOMAIN=localhost
@@ -111,9 +200,10 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
 Then build and start:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.prod.yml -f docker-compose.https-local.yml up -d --build
 docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan migrate --force
 docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan db:seed --force
+docker compose --env-file .env.production -f docker-compose.prod.yml exec backend php artisan queue:health
 ```
 
 Open:
@@ -142,6 +232,8 @@ If frontend login fails, check:
 For local Docker production testing:
 
 ```env
+APP_DOMAIN=:80
+ACME_EMAIL=admin@example.com
 APP_URL=http://localhost
 FRONTEND_URL=http://localhost
 SESSION_DOMAIN=localhost
@@ -152,6 +244,8 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
 For a real domain:
 
 ```env
+APP_DOMAIN=your-domain.com
+ACME_EMAIL=admin@your-domain.com
 APP_URL=https://your-domain.com
 FRONTEND_URL=https://your-domain.com
 SESSION_DOMAIN=your-domain.com
@@ -171,13 +265,4 @@ If the database is not ready:
 docker compose --env-file .env.production -f docker-compose.prod.yml logs postgres
 ```
 
-## HTTPS Notes
-
-For HTTPS, use one of:
-
-- Cloudflare proxy SSL
-- Nginx with Certbot
-- Caddy reverse proxy
-- Traefik reverse proxy
-
-For a first VPS demo deployment, Cloudflare proxy SSL is the simplest.
+For first VPS deployment, point DNS to the VPS before starting Caddy so certificate issuance can complete.
