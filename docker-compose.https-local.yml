@@ -1,0 +1,6 @@
+services:
+  proxy:
+    volumes:
+      - ./infrastructure/caddy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+    ports:
+      - "80:80"

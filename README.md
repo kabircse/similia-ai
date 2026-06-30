@@ -234,6 +234,7 @@ similia-ai/
 |   |-- PORTFOLIO_CASE_STUDY.md
 |   `-- ROADMAP.md
 |-- infrastructure/
+|   |-- caddy/
 |   `-- nginx/
 |-- scripts/
 |-- docker-compose.yml
@@ -424,11 +425,52 @@ Production services:
 - frontend
 - backend-nginx
 - backend PHP-FPM
+- backend-queue
+- backend-scheduler
 - FastAPI AI service
 - PostgreSQL pgvector
 - Redis
 
 Full deployment notes are in [Deployment Guide](docs/DEPLOYMENT.md).
+
+### HTTPS Reverse Proxy
+
+Production uses Caddy as the HTTPS reverse proxy.
+
+```text
+https://your-domain.com
+    |
+    v
+Caddy
+    |
+    v
+React frontend / Laravel API
+```
+
+Caddy routes:
+
+- `/` -> frontend
+- `/api/*` -> Laravel API
+- `/sanctum/*` -> Laravel Sanctum
+
+### Queue Workers
+
+Production includes dedicated Laravel services:
+
+- `backend-queue`
+- `backend-scheduler`
+
+Queue worker logs:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend-queue
+```
+
+Scheduler logs:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f backend-scheduler
+```
 
 ---
 

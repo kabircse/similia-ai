@@ -23,5 +23,11 @@ echo "Optimizing Laravel..."
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec backend php artisan optimize:clear
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec backend php artisan optimize
 
+echo "Restarting Laravel queue workers..."
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec backend php artisan queue:restart || true
+
+echo "Checking queue health..."
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" exec backend php artisan queue:health || true
+
 echo "Deployment complete."
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
