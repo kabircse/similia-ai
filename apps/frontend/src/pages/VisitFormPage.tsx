@@ -71,6 +71,33 @@ const initialForm: VisitInput = {
   next_follow_up_date: "",
 };
 
+function caseSectionValueToText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return JSON.stringify(value, null, 2);
+}
+
+function normalizeCaseSections(
+  sections: Partial<CaseSections> & Record<string, unknown>
+): CaseSections {
+  return Object.fromEntries(
+    Object.keys(initialSections).map((key) => [
+      key,
+      caseSectionValueToText(sections[key]),
+    ])
+  ) as CaseSections;
+}
+
 export function VisitFormPage() {
   const { patientId, visitId } = useParams();
   const isEdit = Boolean(visitId);
@@ -101,10 +128,7 @@ export function VisitFormPage() {
       case_source: visitQuery.data.case_source,
       chief_complaint: visitQuery.data.chief_complaint ?? "",
       raw_case_text: visitQuery.data.raw_case_text ?? "",
-      case_sections: {
-        ...initialSections,
-        ...visitQuery.data.case_sections,
-      },
+      case_sections: normalizeCaseSections(visitQuery.data.case_sections),
       doctor_notes: visitQuery.data.doctor_notes ?? "",
       next_follow_up_date: visitQuery.data.next_follow_up_date ?? "",
     });
@@ -218,6 +242,7 @@ export function VisitFormPage() {
               <option value="manual">Manual</option>
               <option value="raw">Raw Text</option>
               <option value="mixed">Mixed</option>
+              <option value="patient_portal">Patient Portal</option>
             </select>
           </label>
 

@@ -18,6 +18,7 @@ import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
 import { PatientHandoutPrintPage } from "./pages/print/PatientHandoutPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { PublicFollowUpFormPage } from "./pages/PublicFollowUpFormPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -41,6 +42,10 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/portal/follow-up/:publicId/:secret"
+        element={<PublicFollowUpFormPage />}
+      />
 
       <Route
         path="/dashboard"

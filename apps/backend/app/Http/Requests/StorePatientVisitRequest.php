@@ -18,7 +18,7 @@ class StorePatientVisitRequest extends FormRequest
             'visit_date' => ['required', 'date'],
             'visit_type' => ['required', Rule::in(['initial', 'follow_up'])],
             'status' => ['required', Rule::in(['draft', 'completed'])],
-            'case_source' => ['required', Rule::in(['manual', 'raw', 'mixed'])],
+            'case_source' => ['required', Rule::in(['manual', 'raw', 'mixed', 'patient_portal'])],
 
             'chief_complaint' => ['nullable', 'string', 'max:5000'],
             'raw_case_text' => ['nullable', 'string', 'max:20000'],
