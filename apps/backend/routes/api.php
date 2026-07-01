@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PatientPrescriptionController;
 use App\Http\Controllers\Api\PatientTimelineController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
+use App\Http\Controllers\Api\PotencyGuidanceController;
 use App\Http\Controllers\Api\RemedyController;
 use App\Http\Controllers\Api\RemedySuggestionController;
 use App\Http\Controllers\Api\RepertorizationController;
@@ -121,6 +122,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get(
         '/patients/{patient}/visits/{visit}/follow-up-analyses/{followUpAnalysisRun}',
         [FollowUpAnalysisController::class, 'show']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/potency-guidance',
+        [PotencyGuidanceController::class, 'index']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/potency-guidance/generate',
+        [PotencyGuidanceController::class, 'generate']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/potency-guidance/{potencyGuidanceRun}',
+        [PotencyGuidanceController::class, 'show']
     )->middleware('permission:manage_visits');
 
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);

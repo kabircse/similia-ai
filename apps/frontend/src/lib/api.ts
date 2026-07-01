@@ -1391,6 +1391,127 @@ export async function generateFollowUpAnalysis(
   return response.data.data;
 }
 
+export type PotencyGuidanceOption = {
+  id: number;
+  potency_guidance_run_id: number;
+  potency_range: "low" | "medium" | "high" | "lm" | "wait" | "unclear" | string;
+  potency_label: string | null;
+  rank: number;
+  suitability_score: string | number;
+  rationale: string | null;
+  repetition_note: string | null;
+  caution: string | null;
+  source_chunks: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type PotencyCasePhase =
+  | "acute"
+  | "chronic"
+  | "follow_up"
+  | "constitutional"
+  | "unclear";
+
+export type PotencySensitivity = "low" | "moderate" | "high" | "unclear";
+export type PotencyVitality = "low" | "moderate" | "high" | "unclear";
+export type PotencyPathology =
+  | "functional"
+  | "structural"
+  | "advanced_pathology"
+  | "unclear";
+
+export type PotencyGuidanceRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  prescription_id: number | null;
+  remedy_id: number | null;
+  remedy_code: string | null;
+  remedy_name: string | null;
+  case_phase: PotencyCasePhase | null;
+  status: string;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  follow_up_snapshot: Record<string, unknown>;
+  retrieved_sources: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  vitality_level: PotencyVitality | null;
+  sensitivity_level: PotencySensitivity | null;
+  pathology_depth: PotencyPathology | null;
+  guidance_summary: string | null;
+  repetition_guidance: string | null;
+  wait_and_watch_guidance: string | null;
+  aggravation_guidance: string | null;
+  cautions: string[];
+  follow_up_questions: string[];
+  doctor_review_points: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  options: PotencyGuidanceOption[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PotencyGuidanceResponse = {
+  data: PotencyGuidanceRun[];
+};
+
+export async function getPotencyGuidanceRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PotencyGuidanceResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/potency-guidance`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generatePotencyGuidance(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    prescription_id?: number | null;
+    remedy_id?: number | null;
+    remedy_name?: string | null;
+    remedy_code?: string | null;
+    case_phase?: PotencyCasePhase;
+    patient_sensitivity?: PotencySensitivity;
+    vitality_level?: PotencyVitality;
+    pathology_depth?: PotencyPathology;
+    include_organon?: boolean;
+    include_philosophy?: boolean;
+    include_follow_up_context?: boolean;
+  }
+): Promise<PotencyGuidanceRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/potency-guidance/generate`,
+    {
+      prescription_id: input?.prescription_id ?? null,
+      remedy_id: input?.remedy_id ?? null,
+      remedy_name: input?.remedy_name ?? null,
+      remedy_code: input?.remedy_code ?? null,
+      case_phase: input?.case_phase ?? "unclear",
+      patient_sensitivity: input?.patient_sensitivity ?? "unclear",
+      vitality_level: input?.vitality_level ?? "unclear",
+      pathology_depth: input?.pathology_depth ?? "unclear",
+      include_organon: input?.include_organon ?? true,
+      include_philosophy: input?.include_philosophy ?? true,
+      include_follow_up_context: input?.include_follow_up_context ?? true,
+    }
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionSourceMethod =
   | "manual"
   | "weighted"

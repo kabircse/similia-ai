@@ -81,4 +81,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(FollowUpAnalysisRun::class);
     }
+
+    public function potencyGuidanceRuns(): HasMany
+    {
+        return $this->hasMany(PotencyGuidanceRun::class);
+    }
 }

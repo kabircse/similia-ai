@@ -202,6 +202,47 @@ class FollowUpAnalyzeResponse(BaseModel):
     safety_note: str
 
 
+class PotencyGuidanceRequest(BaseModel):
+    case_snapshot: Any = Field(default_factory=dict)
+    prescription_snapshot: Any = Field(default_factory=dict)
+    follow_up_snapshot: Any = Field(default_factory=dict)
+    remedy: Any = Field(default_factory=dict)
+    settings: Dict[str, Any] = Field(default_factory=dict)
+    knowledge_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class PotencyGuidanceOptionModel(BaseModel):
+    potency_range: str
+    potency_label: Optional[str] = None
+    rank: int = 1
+    suitability_score: float = 0
+    rationale: Optional[str] = None
+    repetition_note: Optional[str] = None
+    caution: Optional[str] = None
+    source_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class PotencyGuidanceResponse(BaseModel):
+    case_phase: str = "unclear"
+    vitality_level: str = "unclear"
+    sensitivity_level: str = "unclear"
+    pathology_depth: str = "unclear"
+
+    guidance_summary: str
+    repetition_guidance: str
+    wait_and_watch_guidance: str
+    aggravation_guidance: str
+
+    cautions: List[str] = Field(default_factory=list)
+    follow_up_questions: List[str] = Field(default_factory=list)
+    doctor_review_points: List[str] = Field(default_factory=list)
+
+    options: List[PotencyGuidanceOptionModel] = Field(default_factory=list)
+
+    safety_note: str
+
+
 def append_text(current: str, value: str) -> str:
     if not value:
         return current
@@ -689,6 +730,350 @@ def _response_level(
     return "unclear"
 
 
+def _dict_or_empty(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+
+    return {}
+
+
+def _potency_text_from_case(payload: PotencyGuidanceRequest) -> str:
+    parts: List[str] = []
+
+    for source in [
+        _dict_or_empty(payload.case_snapshot),
+        _dict_or_empty(payload.prescription_snapshot),
+        _dict_or_empty(payload.follow_up_snapshot),
+    ]:
+        for key in [
+            "chief_complaint",
+            "raw_case_text",
+            "doctor_notes",
+            "analysis_summary",
+            "remedy_response_assessment",
+            "repetition",
+            "dose_instruction",
+            "reason",
+        ]:
+            value = source.get(key)
+            if value:
+                parts.append(str(value))
+
+        case_sections = source.get("case_sections") or {}
+        if isinstance(case_sections, dict):
+            for key, value in case_sections.items():
+                text = _stringify_case_value(value)
+                if text:
+                    parts.append(f"{key}: {text}")
+
+        for list_key in [
+            "improvement_points",
+            "worsening_points",
+            "new_symptoms",
+            "possible_aggravation_signs",
+            "red_flags",
+        ]:
+            value = source.get(list_key)
+            if isinstance(value, list):
+                parts.append(", ".join([str(item) for item in value if item]))
+
+    return "\n".join(parts).lower()
+
+
+def _infer_case_phase(text: str, settings: Dict[str, Any]) -> str:
+    requested = settings.get("case_phase")
+    if requested and requested != "unclear":
+        return str(requested)
+
+    if _followup_contains_any(
+        text,
+        [
+            "acute",
+            "sudden",
+            "fever",
+            "diarrhoea",
+            "diarrhea",
+            "vomiting",
+            "জ্বর",
+            "হঠাৎ",
+            "বমি",
+            "পাতলা পায়খানা",
+        ],
+    ):
+        return "acute"
+
+    if _followup_contains_any(
+        text,
+        [
+            "follow-up",
+            "follow up",
+            "after medicine",
+            "after remedy",
+            "improved",
+            "worse",
+            "follow_up",
+        ],
+    ):
+        return "follow_up"
+
+    if _followup_contains_any(
+        text,
+        ["chronic", "long time", "years", "constitutional", "বছর", "অনেকদিন", "ক্রনিক"],
+    ):
+        return "chronic"
+
+    return "constitutional"
+
+
+def _infer_sensitivity(text: str, settings: Dict[str, Any]) -> str:
+    requested = settings.get("patient_sensitivity") or settings.get("sensitivity_level")
+    if requested and requested != "unclear":
+        return str(requested)
+
+    high_words = [
+        "sensitive",
+        "reacts strongly",
+        "medicine aggravates",
+        "allergy",
+        "very weak",
+        "অল্পতেই",
+        "সহ্য হয় না",
+        "খুব সংবেদনশীল",
+    ]
+    low_words = [
+        "robust",
+        "strong vitality",
+        "less sensitive",
+        "সহজে প্রতিক্রিয়া হয় না",
+    ]
+
+    if _followup_contains_any(text, high_words):
+        return "high"
+
+    if _followup_contains_any(text, low_words):
+        return "low"
+
+    return "moderate"
+
+
+def _infer_vitality(text: str, settings: Dict[str, Any]) -> str:
+    requested = settings.get("vitality_level")
+    if requested and requested != "unclear":
+        return str(requested)
+
+    low_words = [
+        "very weak",
+        "cachexia",
+        "bedridden",
+        "advanced",
+        "severe pathology",
+        "খুব দুর্বল",
+        "শয্যাশায়ী",
+    ]
+    high_words = [
+        "strong",
+        "active",
+        "good energy",
+        "high vitality",
+        "শক্তি ভালো",
+    ]
+
+    if _followup_contains_any(text, low_words):
+        return "low"
+
+    if _followup_contains_any(text, high_words):
+        return "high"
+
+    return "moderate"
+
+
+def _infer_pathology_depth(text: str, settings: Dict[str, Any]) -> str:
+    requested = settings.get("pathology_depth")
+    if requested and requested != "unclear":
+        return str(requested)
+
+    advanced_words = [
+        "cancer",
+        "renal failure",
+        "heart failure",
+        "advanced pathology",
+        "severe structural",
+        "malignancy",
+        "ক্যান্সার",
+    ]
+    structural_words = [
+        "stone",
+        "tumor",
+        "tumour",
+        "fibroid",
+        "cyst",
+        "ulcer",
+        "structural",
+        "পাথর",
+        "টিউমার",
+        "আলসার",
+    ]
+
+    if _followup_contains_any(text, advanced_words):
+        return "advanced_pathology"
+
+    if _followup_contains_any(text, structural_words):
+        return "structural"
+
+    return "functional"
+
+
+def _source_notes(
+    chunks: List[Dict[str, Any]],
+    source_types: List[str],
+    limit: int = 6,
+) -> List[Dict[str, Any]]:
+    output: List[Dict[str, Any]] = []
+
+    for chunk in chunks:
+        if chunk.get("source_type") not in source_types:
+            continue
+
+        output.append(
+            {
+                "id": chunk.get("id"),
+                "source_type": chunk.get("source_type"),
+                "source_title": chunk.get("source_title"),
+                "author": chunk.get("author"),
+                "title": chunk.get("title"),
+                "source_ref": chunk.get("source_ref"),
+                "content": _short_text(str(chunk.get("content") or ""), 420),
+                "distance": chunk.get("distance"),
+            }
+        )
+
+        if len(output) >= limit:
+            break
+
+    return output
+
+
+def _potency_options(
+    phase: str,
+    vitality: str,
+    sensitivity: str,
+    pathology: str,
+    chunks: List[Dict[str, Any]],
+) -> List[PotencyGuidanceOptionModel]:
+    source_notes = _source_notes(chunks, ["potency", "organon", "philosophy"], 5)
+
+    options: List[PotencyGuidanceOptionModel] = []
+
+    if sensitivity == "high" or vitality == "low" or pathology == "advanced_pathology":
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="low",
+                potency_label="Low potency consideration",
+                rank=1,
+                suitability_score=78,
+                rationale="High sensitivity, low vitality, or advanced pathology suggests cautious potency consideration.",
+                repetition_note="Avoid automatic repetition. Observe response carefully and repeat only if clinically justified.",
+                caution="High sensitivity or deep pathology may aggravate easily; practitioner judgment required.",
+                source_chunks=source_notes,
+            )
+        )
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="wait",
+                potency_label="Wait and watch",
+                rank=2,
+                suitability_score=70,
+                rationale="If there is ongoing improvement or sensitivity is high, observation may be safer than repetition.",
+                repetition_note="Wait while improvement continues.",
+                caution="Do not wait if urgent red flags or clinical deterioration appear.",
+                source_chunks=source_notes,
+            )
+        )
+
+        return options
+
+    if phase == "acute":
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="medium",
+                potency_label="Medium potency consideration",
+                rank=1,
+                suitability_score=74,
+                rationale="Acute cases may require close observation and potency choice based on intensity, vitality, and clarity of remedy picture.",
+                repetition_note="Repetition depends on pace of acute symptoms and response after each dose.",
+                caution="Urgent acute danger signs require medical evaluation.",
+                source_chunks=source_notes,
+            )
+        )
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="low",
+                potency_label="Low potency consideration",
+                rank=2,
+                suitability_score=62,
+                rationale="Lower potency may be considered when the case is unclear, sensitivity is uncertain, or pathology risk exists.",
+                repetition_note="Repeat only after reassessing response.",
+                caution="Avoid mechanical frequent repetition.",
+                source_chunks=source_notes,
+            )
+        )
+
+        return options
+
+    if phase in ["chronic", "constitutional", "follow_up"]:
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="medium",
+                potency_label="30C / 200C consideration",
+                rank=1,
+                suitability_score=72,
+                rationale="For chronic or constitutional work, potency depends on vitality, sensitivity, pathology depth, and certainty of remedy selection.",
+                repetition_note="Single dose and wait-and-watch may be appropriate when response is clear and ongoing.",
+                caution="Do not repeat while improvement continues.",
+                source_chunks=source_notes,
+            )
+        )
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="high",
+                potency_label="High potency consideration",
+                rank=2,
+                suitability_score=58,
+                rationale="Higher potency may require strong vitality, clear remedy similarity, and careful follow-up.",
+                repetition_note="Usually avoid frequent repetition unless practitioner has clear indication.",
+                caution="Not suitable for every chronic case; sensitivity and pathology depth must be reviewed.",
+                source_chunks=source_notes,
+            )
+        )
+        options.append(
+            PotencyGuidanceOptionModel(
+                potency_range="wait",
+                potency_label="Wait and watch",
+                rank=3,
+                suitability_score=68,
+                rationale="If follow-up shows sustained improvement, waiting may be preferable to repetition.",
+                repetition_note="Wait while improvement continues; reassess if improvement stops or old symptoms return.",
+                caution="Do not ignore red flags or serious deterioration.",
+                source_chunks=source_notes,
+            )
+        )
+
+        return options
+
+    return [
+        PotencyGuidanceOptionModel(
+            potency_range="unclear",
+            potency_label="Potency unclear",
+            rank=1,
+            suitability_score=40,
+            rationale="Case phase, vitality, sensitivity, and pathology depth are not clear enough.",
+            repetition_note="Ask more questions before deciding potency or repetition.",
+            caution="Do not prescribe mechanically.",
+            source_chunks=source_notes,
+        )
+    ]
+
+
 def build_missing_questions(sections: Dict[str, str], chief_complaint: Optional[str]) -> List[str]:
     questions: List[str] = []
 
@@ -1127,6 +1512,115 @@ def analyze_follow_up(payload: FollowUpAnalyzeRequest) -> FollowUpAnalyzeRespons
         doctor_review_points=doctor_review_points,
         recommended_next_steps=recommended_next_steps,
         progress_items=progress_items,
+        safety_note=safety_note,
+    )
+
+
+@app.post("/potency/guidance", response_model=PotencyGuidanceResponse)
+def potency_guidance(payload: PotencyGuidanceRequest) -> PotencyGuidanceResponse:
+    text = _potency_text_from_case(payload)
+    remedy = _dict_or_empty(payload.remedy)
+    prescription_snapshot = _dict_or_empty(payload.prescription_snapshot)
+
+    phase = _infer_case_phase(text, payload.settings)
+    sensitivity = _infer_sensitivity(text, payload.settings)
+    vitality = _infer_vitality(text, payload.settings)
+    pathology = _infer_pathology_depth(text, payload.settings)
+
+    remedy_name = (
+        remedy.get("remedy_name")
+        or prescription_snapshot.get("remedy_name")
+        or "selected remedy"
+    )
+
+    options = _potency_options(
+        phase=phase,
+        vitality=vitality,
+        sensitivity=sensitivity,
+        pathology=pathology,
+        chunks=payload.knowledge_chunks,
+    )
+
+    cautions: List[str] = [
+        "Final potency and repetition must be decided by the practitioner.",
+        "Do not repeat automatically while improvement is continuing.",
+        "Review sensitivity, vitality, pathology depth, and remedy certainty before potency selection.",
+    ]
+
+    if sensitivity == "high":
+        cautions.append("High sensitivity suspected: consider extra caution with potency and repetition.")
+
+    if vitality == "low":
+        cautions.append("Low vitality suspected: avoid aggressive repetition without close review.")
+
+    if pathology in ["structural", "advanced_pathology"]:
+        cautions.append(
+            "Structural or advanced pathology suspected: coordinate medical evaluation where appropriate."
+        )
+
+    if phase == "follow_up":
+        cautions.append(
+            "Follow-up case: assess direction of cure, aggravation, old symptom return, and general wellbeing before repeating."
+        )
+
+    guidance_summary = (
+        f"Potency guidance for {remedy_name}: case phase appears {phase}, "
+        f"vitality appears {vitality}, sensitivity appears {sensitivity}, "
+        f"and pathology depth appears {pathology}. These are decision-support indicators only."
+    )
+
+    repetition_guidance = (
+        "Repetition should be based on the patient response, not a fixed routine. "
+        "If improvement is clear and continuing, wait-and-watch is usually safer than mechanical repetition."
+    )
+
+    wait_guidance = (
+        "Wait-and-watch is especially important when there is steady improvement, high sensitivity, "
+        "recent aggravation followed by improvement, or unclear need for repetition."
+    )
+
+    aggravation_guidance = (
+        "If aggravation is reported, confirm timing, intensity, duration, general wellbeing, "
+        "return of old symptoms, and whether the aggravation is followed by improvement."
+    )
+
+    follow_up_questions = [
+        "What changed first after the dose?",
+        "Is improvement still continuing?",
+        "Was there any initial aggravation? How long did it last?",
+        "Did energy, sleep, appetite, mood, and generals improve?",
+        "Did any old symptom return?",
+        "Are there any new symptoms after the remedy?",
+        "Was any other medicine or treatment used?",
+        "Any red-flag symptom or clinical deterioration?",
+    ]
+
+    review_points = [
+        "Confirm remedy similarity before considering potency escalation.",
+        "Review patient sensitivity and vitality.",
+        "Review pathology depth and risk.",
+        "Review whether repetition is needed at all.",
+        "Document why potency and repetition were chosen.",
+    ]
+
+    safety_note = (
+        "This is doctor-facing potency guidance only. It is not an automatic potency prescription. "
+        "Final potency, repetition, wait-and-watch, remedy change, and referral decisions must be made by the practitioner."
+    )
+
+    return PotencyGuidanceResponse(
+        case_phase=phase,
+        vitality_level=vitality,
+        sensitivity_level=sensitivity,
+        pathology_depth=pathology,
+        guidance_summary=guidance_summary,
+        repetition_guidance=repetition_guidance,
+        wait_and_watch_guidance=wait_guidance,
+        aggravation_guidance=aggravation_guidance,
+        cautions=cautions,
+        follow_up_questions=follow_up_questions,
+        doctor_review_points=review_points,
+        options=options,
         safety_note=safety_note,
     )
 
