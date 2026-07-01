@@ -53,4 +53,9 @@ class Patient extends Model
     {
         return $this->hasMany(DoctorReviewQueueItem::class);
     }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(ClinicAppointment::class);
+    }
 }

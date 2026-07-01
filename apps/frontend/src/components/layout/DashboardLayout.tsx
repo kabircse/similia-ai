@@ -2,6 +2,7 @@ import type { ElementType, ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  CalendarClock,
   LayoutDashboard,
   Users,
   ClipboardList,
@@ -41,6 +42,12 @@ const navItems: Array<{
     path: "/patients",
     icon: Users,
     permission: "manage_patients",
+  },
+  {
+    label: "Appointments",
+    path: "/appointments",
+    icon: CalendarClock,
+    permission: "manage_visits",
   },
   {
     label: "Review Queue",

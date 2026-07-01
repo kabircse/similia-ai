@@ -68,4 +68,9 @@ class PatientPrescription extends Model
     {
         return $this->hasMany(PatientPortalInvitation::class, 'prescription_id');
     }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(ClinicAppointment::class, 'prescription_id');
+    }
 }
