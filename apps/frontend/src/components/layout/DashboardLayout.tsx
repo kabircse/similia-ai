@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Activity,
+  HeartPulse,
 } from "lucide-react";
 import { getMe, logout } from "../../lib/api";
 import { hasPermission } from "../../lib/permissions";
@@ -32,6 +33,12 @@ const navItems: Array<{
     label: "Dashboard",
     path: "/dashboard",
     icon: LayoutDashboard,
+    permission: "view_dashboard",
+  },
+  {
+    label: "Clinical Dashboard",
+    path: "/clinical-dashboard",
+    icon: HeartPulse,
     permission: "view_dashboard",
   },
   {

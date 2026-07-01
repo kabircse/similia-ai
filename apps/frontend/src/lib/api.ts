@@ -97,6 +97,159 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
   return response.data.data;
 }
 
+export type ClinicalDashboardPeriod =
+  | "7d"
+  | "30d"
+  | "90d"
+  | "this_month"
+  | "last_month"
+  | "this_year"
+  | "custom";
+
+export type DashboardSeriesPoint = {
+  date: string;
+  total: number;
+};
+
+export type DashboardProgressPoint = {
+  date: string;
+  average_score: number;
+  total: number;
+};
+
+export type DashboardFollowUpItem = {
+  prescription_id: number;
+  patient_id: number;
+  patient_name: string | null;
+  patient_phone: string | null;
+  visit_id: number;
+  chief_complaint: string | null;
+  follow_up_date: string | null;
+  remedy_name: string | null;
+  potency: string | null;
+};
+
+export type DashboardOutcomeCase = {
+  id: number;
+  patient_id: number;
+  patient_name: string | null;
+  visit_id: number;
+  visit_date: string | null;
+  chief_complaint: string | null;
+  response_level: string | null;
+  progress_score: number;
+  summary: string | null;
+  red_flags: string[];
+};
+
+export type DashboardRedFlag = {
+  id: number;
+  patient_id: number;
+  patient_name: string | null;
+  patient_phone: string | null;
+  visit_id: number;
+  visit_date: string | null;
+  chief_complaint: string | null;
+  red_flags: string[];
+  summary: string | null;
+};
+
+export type DashboardAlert = {
+  type: string;
+  severity: string;
+  patient_id: number | null;
+  patient_name: string | null;
+  visit_id: number | null;
+  title: string;
+  description: string | null;
+  created_at: string | null;
+};
+
+export type ClinicalDashboard = {
+  filters: {
+    date_from: string;
+    date_to: string;
+    doctor_id: number | null;
+    period: ClinicalDashboardPeriod;
+  };
+  kpis: {
+    new_patients: number;
+    visits: number;
+    follow_up_visits: number;
+    prescriptions: number;
+    outcome_analyses: number;
+    average_progress_score: number;
+    patient_handouts: number;
+  };
+  clinic_activity: {
+    visits_by_day: DashboardSeriesPoint[];
+    new_patients_by_day: DashboardSeriesPoint[];
+    visit_type_distribution: Array<{
+      visit_type: string;
+      total: number;
+    }>;
+  };
+  outcomes: {
+    response_level_distribution: Array<{
+      response_level: string;
+      total: number;
+    }>;
+    progress_score_trend: DashboardProgressPoint[];
+    latest_outcome_cases: DashboardOutcomeCase[];
+  };
+  remedies: {
+    top_prescribed_remedies: Array<{
+      remedy: string;
+      total: number;
+    }>;
+    top_potencies: Array<{
+      potency: string;
+      total: number;
+    }>;
+  };
+  safety: {
+    prescription_review_status: Array<{
+      review_status: string;
+      total: number;
+    }>;
+    red_flag_count: number;
+    recent_red_flags: DashboardRedFlag[];
+  };
+  finance: {
+    total_amount: number;
+    paid_amount: number;
+    due_amount: number;
+    unpaid_count: number;
+    partial_count: number;
+    paid_count: number;
+  };
+  follow_ups: {
+    due_today: DashboardFollowUpItem[];
+    due_next_7_days: DashboardFollowUpItem[];
+    overdue: DashboardFollowUpItem[];
+  };
+  recent_alerts: DashboardAlert[];
+  generated_at: string;
+};
+
+export async function getClinicalDashboard(input?: {
+  period?: ClinicalDashboardPeriod;
+  date_from?: string | null;
+  date_to?: string | null;
+  doctor_id?: number | null;
+}): Promise<ClinicalDashboard> {
+  const response = await api.get("/api/clinical-dashboard", {
+    params: {
+      period: input?.period ?? "30d",
+      date_from: input?.date_from ?? null,
+      date_to: input?.date_to ?? null,
+      doctor_id: input?.doctor_id ?? null,
+    },
+  });
+
+  return response.data.data;
+}
+
 export type AiTask = {
   id: number;
   user_id: number;

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseQuestionConversationController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\ClinicSettingController;
+use App\Http\Controllers\Api\ClinicalDashboardController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FollowUpAnalysisController;
 use App\Http\Controllers\Api\KnowledgeSearchController;
@@ -42,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/clinical-dashboard', [ClinicalDashboardController::class, 'show'])
+        ->middleware('permission:view_dashboard');
     Route::get('/activity-logs', [AuditLogController::class, 'index'])
         ->middleware('permission:view_activity_logs');
 
