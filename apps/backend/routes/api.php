@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\RepertoryRubricController;
 use App\Http\Controllers\Api\UserNotificationController;
 use App\Http\Controllers\Api\VisitPrintController;
 use App\Http\Controllers\Api\VoiceTranscriptController;
+use App\Http\Controllers\Api\WhatsAppMessageTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -90,6 +91,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/appointments/{appointment}/status', [ClinicAppointmentController::class, 'updateStatus']);
         Route::get('/patients/{patient}/visits/{visit}/appointments', [ClinicAppointmentController::class, 'visitAppointments']);
         Route::post('/patients/{patient}/visits/{visit}/appointments', [ClinicAppointmentController::class, 'storeForVisit']);
+    });
+    Route::middleware('permission:manage_visits')->group(function () {
+        Route::get('/whatsapp/templates', [WhatsAppMessageTemplateController::class, 'index']);
+        Route::post('/whatsapp/templates/render', [WhatsAppMessageTemplateController::class, 'render']);
+        Route::post('/whatsapp/templates', [WhatsAppMessageTemplateController::class, 'store']);
+        Route::patch('/whatsapp/templates/{template}', [WhatsAppMessageTemplateController::class, 'update']);
     });
     Route::middleware('permission:manage_visits')->group(function () {
         Route::get('/doctor-review-queue/summary', [DoctorReviewQueueController::class, 'summary']);

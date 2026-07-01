@@ -4859,3 +4859,62 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* WhatsApp Composer */
+
+.whatsapp-composer {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-grid > .whatsapp-composer {
+  grid-column: 1 / -1;
+}
+
+.whatsapp-composer.compact {
+  border-top: 1px solid #edf0eb;
+  padding-top: 12px;
+}
+
+.whatsapp-template-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 160px) minmax(0, 1.3fr);
+  gap: 12px;
+}
+
+.whatsapp-template-grid label,
+.whatsapp-preview-field {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.whatsapp-preview-field textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+  resize: vertical;
+}
+
+.whatsapp-preview-field textarea:focus {
+  border-color: #145c43;
+  box-shadow: 0 0 0 3px rgba(20, 92, 67, 0.12);
+}
+
+.appointment-row {
+  flex-wrap: wrap;
+}
+
+.appointment-whatsapp-slot {
+  flex: 1 0 100%;
+  width: 100%;
+}
+
+@media (max-width: 920px) {
+  .whatsapp-template-grid {
+    grid-template-columns: 1fr;
+  }
+}

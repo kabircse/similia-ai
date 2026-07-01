@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router";
 import { deletePatientVisit, getPatient, getPatientVisits } from "../lib/api";
 import { PatientTimelinePanel } from "../components/timeline/PatientTimelinePanel";
+import { WhatsAppMessageComposer } from "../components/whatsapp/WhatsAppMessageComposer";
 
 export function PatientDetailPage() {
   const { patientId } = useParams();
@@ -110,6 +111,8 @@ export function PatientDetailPage() {
           <h3>Notes</h3>
           <p className="notes-text">{patient.notes || "No notes added."}</p>
         </article>
+
+        <WhatsAppMessageComposer patientId={patient.id} />
 
         {patientId && <PatientTimelinePanel patientId={patientId} />}
 

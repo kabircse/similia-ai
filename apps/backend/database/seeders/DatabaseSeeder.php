@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             SampleRepertorySeeder::class,
             SampleMateriaMedicaSeeder::class,
             DemoClinicalCaseSeeder::class,
+            WhatsAppMessageTemplateSeeder::class,
         ]);
     }
 }

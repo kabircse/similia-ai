@@ -2895,6 +2895,64 @@ export async function updateAppointmentStatus(
   return response.data.data;
 }
 
+export type WhatsAppMessageTemplate = {
+  id: number;
+  title: string;
+  category:
+    | "appointment_reminder"
+    | "follow_up_reminder"
+    | "medicine_instruction"
+    | "prescription_follow_up"
+    | "missed_appointment"
+    | "portal_follow_up_request"
+    | "general_notice"
+    | string;
+  language: string;
+  body: string;
+  variables: string[];
+  is_active: boolean;
+  doctor_id: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type WhatsAppTemplateResponse = {
+  data: WhatsAppMessageTemplate[];
+};
+
+export type RenderedWhatsAppMessage = {
+  message: string;
+  phone: string | null;
+  whatsapp_url: string | null;
+  variables: Record<string, string | number | null>;
+  template: WhatsAppMessageTemplate;
+};
+
+export async function getWhatsAppTemplates(input?: {
+  category?: string | null;
+  language?: string | null;
+}): Promise<WhatsAppTemplateResponse> {
+  const response = await api.get("/api/whatsapp/templates", {
+    params: {
+      category: input?.category ?? null,
+      language: input?.language ?? null,
+    },
+  });
+
+  return response.data;
+}
+
+export async function renderWhatsAppMessage(input: {
+  template_id: number;
+  patient_id?: number | string | null;
+  appointment_id?: number | string | null;
+  variables?: Record<string, string | number | null>;
+}): Promise<RenderedWhatsAppMessage> {
+  const response = await api.post("/api/whatsapp/templates/render", input);
+
+  return response.data.data;
+}
+
 export type PaymentMethod =
   | "cash"
   | "bkash"
