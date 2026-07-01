@@ -38,4 +38,14 @@ class Patient extends Model
     {
         return $this->hasMany(PatientVisit::class);
     }
+
+    public function portalInvitations(): HasMany
+    {
+        return $this->hasMany(PatientPortalInvitation::class);
+    }
+
+    public function followUpSubmissions(): HasMany
+    {
+        return $this->hasMany(PatientFollowUpSubmission::class);
+    }
 }

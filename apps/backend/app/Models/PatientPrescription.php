@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PatientPrescription extends Model
 {
@@ -61,5 +62,10 @@ class PatientPrescription extends Model
     public function remedy(): BelongsTo
     {
         return $this->belongsTo(Remedy::class);
+    }
+
+    public function portalInvitations(): HasMany
+    {
+        return $this->hasMany(PatientPortalInvitation::class, 'prescription_id');
     }
 }

@@ -2121,6 +2121,264 @@ button:disabled {
   }
 }
 
+.patient-portal-panel,
+.portal-invite-form,
+.portal-list {
+  display: grid;
+  gap: 16px;
+}
+
+.portal-invite-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 180px));
+  gap: 14px;
+}
+
+.portal-invite-grid label,
+.portal-message-field,
+.portal-note-field,
+.public-follow-up-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.portal-invite-grid input,
+.portal-invite-grid select,
+.portal-message-field textarea,
+.portal-note-field textarea,
+.public-follow-up-form input,
+.public-follow-up-form select,
+.public-follow-up-form textarea {
+  border: 1px solid #d7dfd8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
+  color: #102018;
+  background: #ffffff;
+}
+
+.portal-message-field textarea,
+.portal-note-field textarea,
+.public-follow-up-form textarea {
+  resize: vertical;
+}
+
+.portal-invitation-card,
+.portal-submission-card {
+  border: 1px solid #d7dfd8;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  display: grid;
+  gap: 14px;
+}
+
+.portal-invitation-card.submitted,
+.portal-submission-card.converted_to_visit {
+  border-color: #cfe9d7;
+  background: #f8fff9;
+}
+
+.portal-invitation-card.revoked,
+.portal-submission-card.archived {
+  border-color: #ffd3d3;
+  background: #fff8f8;
+}
+
+.portal-card-header,
+.portal-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.portal-card-header strong,
+.portal-section-heading strong {
+  color: #102018;
+  text-transform: capitalize;
+}
+
+.portal-card-header p,
+.portal-muted {
+  margin: 4px 0 0;
+  color: #708074;
+}
+
+.portal-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.portal-stats span {
+  border: 1px solid #edf0eb;
+  border-radius: 999px;
+  background: #fbfcfa;
+  color: #526052;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.portal-link-box code {
+  display: block;
+  width: 100%;
+  border: 1px solid #edf0eb;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfa;
+  color: #425245;
+  word-break: break-all;
+}
+
+.portal-submission-content {
+  border: 1px solid #edf0eb;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfa;
+}
+
+.portal-submission-content p {
+  margin: 8px 0;
+  color: #425245;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.portal-red-flags {
+  border: 1px solid #ffd3d3;
+  border-radius: 8px;
+  background: #fff8f8;
+  color: #a32121;
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-weight: 800;
+}
+
+.public-form-page {
+  min-height: 100vh;
+  background: #f5f7f4;
+  padding: 32px 16px;
+  display: grid;
+  place-items: start center;
+}
+
+.public-form-card {
+  width: min(760px, 100%);
+  border: 1px solid #e3e9e3;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(18, 40, 28, 0.07);
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.public-form-card h1 {
+  margin: 0 0 6px;
+  color: #102018;
+}
+
+.public-form-card p {
+  margin: 0;
+  color: #425245;
+  line-height: 1.6;
+}
+
+.public-message-box,
+.public-prescription-box {
+  border: 1px solid #d9e8ff;
+  background: #f7fbff;
+  color: #42526b;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.public-prescription-box {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.public-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-summary-grid div {
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.public-summary-grid span {
+  color: #708074;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.public-summary-grid strong {
+  color: #102018;
+  line-height: 1.35;
+}
+
+.public-follow-up-form {
+  display: grid;
+  gap: 14px;
+}
+
+.public-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.consent-check {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: flex-start;
+  font-weight: 700 !important;
+}
+
+.consent-check input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 860px) {
+  .portal-invite-grid,
+  .public-summary-grid,
+  .public-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .portal-invite-grid,
+  .public-summary-grid,
+  .public-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-card-header,
+  .portal-section-heading {
+    flex-direction: column;
+  }
+}
+
 .fee-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
