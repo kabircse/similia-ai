@@ -36,6 +36,18 @@ const navItems: Array<{
     permission: "view_dashboard",
   },
   {
+    label: "Patients",
+    path: "/patients",
+    icon: Users,
+    permission: "manage_patients",
+  },
+  {
+    label: "Advanced Search",
+    path: "/search",
+    icon: Search,
+    permission: "view_dashboard",
+  },
+  {
     label: "Clinical Dashboard",
     path: "/clinical-dashboard",
     icon: HeartPulse,
@@ -46,12 +58,6 @@ const navItems: Array<{
     path: "/clinic-reports",
     icon: FileText,
     permission: "view_activity_logs",
-  },
-  {
-    label: "Patients",
-    path: "/patients",
-    icon: Users,
-    permission: "manage_patients",
   },
   {
     label: "Case Taking",
