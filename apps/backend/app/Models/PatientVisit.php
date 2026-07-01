@@ -111,4 +111,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(PatientFollowUpSubmission::class, 'source_patient_visit_id');
     }
+
+    public function reviewQueueItems(): HasMany
+    {
+        return $this->hasMany(DoctorReviewQueueItem::class);
+    }
 }

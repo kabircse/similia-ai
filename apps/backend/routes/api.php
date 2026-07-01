@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ClinicReportController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\ClinicalDashboardController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DoctorReviewQueueController;
 use App\Http\Controllers\Api\FollowUpAnalysisController;
 use App\Http\Controllers\Api\KnowledgeSearchController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
@@ -79,6 +80,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count', [UserNotificationController::class, 'unreadCount']);
     Route::patch('/notifications/{notification}/read', [UserNotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllAsRead']);
+    Route::middleware('permission:manage_visits')->group(function () {
+        Route::get('/doctor-review-queue/summary', [DoctorReviewQueueController::class, 'summary']);
+        Route::get('/doctor-review-queue', [DoctorReviewQueueController::class, 'index']);
+        Route::get('/doctor-review-queue/{queueItem}', [DoctorReviewQueueController::class, 'show']);
+        Route::patch('/doctor-review-queue/{queueItem}', [DoctorReviewQueueController::class, 'updateStatus']);
+    });
     Route::get('/remedies', [RemedyController::class, 'index']);
     Route::get('/remedies/{remedy}', [RemedyController::class, 'show']);
     Route::get('/knowledge/search', [KnowledgeSearchController::class, 'index']);

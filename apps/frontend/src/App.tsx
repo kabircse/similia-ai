@@ -14,6 +14,7 @@ import { ClinicSettingsPage } from "./pages/ClinicSettingsPage";
 import { ClinicalDashboardPage } from "./pages/ClinicalDashboardPage";
 import { ClinicReportPrintPage } from "./pages/ClinicReportPrintPage";
 import { ClinicReportsPage } from "./pages/ClinicReportsPage";
+import { DoctorReviewQueuePage } from "./pages/DoctorReviewQueuePage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
 import { PatientHandoutPrintPage } from "./pages/print/PatientHandoutPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
@@ -79,6 +80,15 @@ function App() {
         element={
           <ProtectedLayout>
             <PatientsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/doctor-review-queue"
+        element={
+          <ProtectedLayout>
+            <DoctorReviewQueuePage />
           </ProtectedLayout>
         }
       />
