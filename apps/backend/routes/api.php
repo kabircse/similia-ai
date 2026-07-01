@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\KnowledgeSearchController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientFeeController;
+use App\Http\Controllers\Api\PatientHandoutController;
 use App\Http\Controllers\Api\PatientPrescriptionController;
 use App\Http\Controllers\Api\PatientTimelineController;
 use App\Http\Controllers\Api\PatientVisitAiController;
@@ -174,6 +175,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch(
         '/patients/{patient}/visits/{visit}/prescription-reviews/{prescriptionReviewRun}/checks/{prescriptionReviewCheck}',
         [PrescriptionReviewController::class, 'updateCheck']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/patient-handouts',
+        [PatientHandoutController::class, 'index']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/patient-handouts/generate',
+        [PatientHandoutController::class, 'generate']
+    )->middleware('permission:manage_visits');
+
+    Route::get(
+        '/patients/{patient}/visits/{visit}/patient-handouts/{patientHandout}',
+        [PatientHandoutController::class, 'show']
+    )->middleware('permission:manage_visits');
+
+    Route::post(
+        '/patients/{patient}/visits/{visit}/patient-handouts/{patientHandout}/printed',
+        [PatientHandoutController::class, 'markPrinted']
     )->middleware('permission:manage_visits');
 
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);

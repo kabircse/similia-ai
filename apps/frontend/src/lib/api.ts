@@ -1821,6 +1821,138 @@ export async function updatePrescriptionReviewCheck(
   return response.data.data;
 }
 
+export type PatientHandoutStatus =
+  | "draft"
+  | "reviewed"
+  | "printed"
+  | "archived"
+  | string;
+
+export type PatientHandoutSection = {
+  id: number;
+  patient_handout_run_id: number;
+  section_key: string;
+  category: "instruction" | "warning" | "follow_up" | "clinic_note" | string;
+  sort_order: number;
+  title: string;
+  content: string;
+  is_important: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PatientHandoutRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  prescription_id: number | null;
+  prescription_review_run_id: number | null;
+  status: PatientHandoutStatus;
+  handout_type: "prescription" | "follow_up" | "general_instruction" | string;
+  response_language: AiResponseLanguage | string;
+  resolved_language: AiResponseLanguage | string | null;
+  title: string | null;
+  patient_summary: string | null;
+  medicine_instruction: string | null;
+  diet_lifestyle_instruction: string | null;
+  follow_up_instruction: string | null;
+  warning_instruction: string | null;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  clinic_snapshot: Record<string, unknown>;
+  review_snapshot: Record<string, unknown>;
+  warning_signs: string[];
+  do_and_dont: string[];
+  footer_note: string | null;
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  sections: PatientHandoutSection[];
+  reviewed_at: string | null;
+  printed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PatientHandoutResponse = {
+  data: PatientHandoutRun[];
+};
+
+export type PatientHandoutStyle = "simple" | "detailed" | "minimal";
+
+export async function getPatientHandouts(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientHandoutResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function getPatientHandout(
+  patientId: string | number,
+  visitId: string | number,
+  handoutId: string | number
+): Promise<PatientHandoutRun> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts/${handoutId}`
+  );
+
+  return response.data.data;
+}
+
+export async function generatePatientHandout(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    prescription_id?: number | null;
+    prescription_review_run_id?: number | null;
+    handout_type?: "prescription" | "follow_up" | "general_instruction";
+    response_language?: AiResponseLanguage;
+    style?: PatientHandoutStyle;
+    include_clinic_branding?: boolean;
+    include_warning_signs?: boolean;
+    include_do_and_dont?: boolean;
+  }
+): Promise<PatientHandoutRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts/generate`,
+    {
+      prescription_id: input?.prescription_id ?? null,
+      prescription_review_run_id: input?.prescription_review_run_id ?? null,
+      handout_type: input?.handout_type ?? "prescription",
+      response_language: input?.response_language ?? "auto",
+      style: input?.style ?? "simple",
+      include_clinic_branding: input?.include_clinic_branding ?? true,
+      include_warning_signs: input?.include_warning_signs ?? true,
+      include_do_and_dont: input?.include_do_and_dont ?? true,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function markPatientHandoutPrinted(
+  patientId: string | number,
+  visitId: string | number,
+  handoutId: string | number
+): Promise<PatientHandoutRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts/${handoutId}/printed`
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionInput = {
   repertorization_result_id: number | null;
   source_method: PrescriptionSourceMethod;

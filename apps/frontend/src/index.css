@@ -2826,6 +2826,136 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.patient-handout-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.handout-action-row {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.handout-action-row label {
+  display: grid;
+  gap: 8px;
+  min-width: 160px;
+  font-weight: 800;
+}
+
+.handout-action-row .compact-checkbox {
+  min-width: 0;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  border: 1px solid #edf0eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fbfcfa;
+}
+
+.compact-checkbox input {
+  width: 18px;
+  height: 18px;
+}
+
+.patient-handout-card {
+  border: 1px solid #d7dfd8;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  display: grid;
+  gap: 16px;
+}
+
+.patient-handout-card.printed {
+  border-color: #cfe9d7;
+  background: #f8fff9;
+}
+
+.patient-handout-card.reviewed {
+  border-color: #d9e8ff;
+  background: #f7fbff;
+}
+
+.handout-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.handout-header h4 {
+  margin: 4px 0;
+  color: #102018;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.handout-header p {
+  margin: 0;
+  color: #708074;
+  overflow-wrap: anywhere;
+}
+
+.handout-summary {
+  margin: 0;
+  color: #425245;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.handout-section-list {
+  display: grid;
+  gap: 12px;
+}
+
+.handout-section {
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 8px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.handout-section.important {
+  border-color: #cfe9d7;
+  background: #f8fff9;
+}
+
+.handout-section.warning {
+  border-color: #ffd3d3;
+  background: #fff8f8;
+}
+
+.handout-section strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #102018;
+}
+
+.handout-section p {
+  white-space: pre-wrap;
+  margin: 8px 0 0;
+  color: #425245;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.handout-section ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: #425245;
+}
+
+.handout-section li {
+  margin: 6px 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .checklist {
   display: grid;
   gap: 12px;
@@ -3084,6 +3214,10 @@ button:disabled {
   min-height: 900px;
 }
 
+.handout-print-sheet {
+  min-height: 900px;
+}
+
 .print-loading {
   min-height: 100vh;
   display: grid;
@@ -3261,6 +3395,32 @@ button:disabled {
   padding-top: 12px;
   color: #526052;
   font-size: 13px;
+}
+
+.handout-print-page .print-sheet {
+  width: min(840px, 100%);
+}
+
+.handout-print-header {
+  align-items: flex-start;
+}
+
+.handout-print-section.warning {
+  color: #991b1b;
+}
+
+.handout-print-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.handout-print-section li {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.handout-print-footer {
+  text-align: center;
 }
 
 @media print {

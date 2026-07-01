@@ -96,4 +96,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(PrescriptionReviewRun::class);
     }
+
+    public function patientHandoutRuns(): HasMany
+    {
+        return $this->hasMany(PatientHandoutRun::class);
+    }
 }
