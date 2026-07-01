@@ -18,6 +18,7 @@ import { EliminativeRepertorizationPanel } from "../components/repertorization/E
 import { MateriaMedicaComparisonPanel } from "../components/materia-medica/MateriaMedicaComparisonPanel";
 import { RemedySuggestionPanel } from "../components/suggestions/RemedySuggestionPanel";
 import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel";
+import { PrescriptionReviewPanel } from "../components/prescriptions/PrescriptionReviewPanel";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
@@ -268,6 +269,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <RemedyRelationshipPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <PrescriptionReviewPanel patientId={patientId} visitId={visitId} />
       )}
 
       {patientId && visitId && (
