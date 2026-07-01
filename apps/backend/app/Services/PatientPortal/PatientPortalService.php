@@ -7,6 +7,7 @@ use App\Models\PatientFollowUpSubmission;
 use App\Models\PatientPortalInvitation;
 use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
+use App\Services\ReviewQueue\DoctorReviewQueueService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -166,6 +167,8 @@ class PatientPortalService
                     : 'opened',
                 'submitted_at' => now(),
             ]);
+
+            app(DoctorReviewQueueService::class)->createFromPortalSubmission($submission);
 
             return $submission->fresh(['patient', 'sourceVisit', 'convertedVisit']);
         });

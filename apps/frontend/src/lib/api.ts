@@ -2454,6 +2454,71 @@ export type PatientFollowUpSubmissionListResponse = {
   };
 };
 
+export type DoctorReviewQueueItem = {
+  id: number;
+  doctor_id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  patient_follow_up_submission_id: number | null;
+  category:
+    | "portal_submission"
+    | "red_flag"
+    | "prescription_review"
+    | "follow_up_due";
+  priority: "low" | "normal" | "high" | "urgent";
+  status: "open" | "in_review" | "completed" | "dismissed";
+  title: string;
+  summary: string | null;
+  doctor_note: string | null;
+  action_url: string | null;
+  submitted_at: string | null;
+  due_at: string | null;
+  in_review_at: string | null;
+  completed_at: string | null;
+  dismissed_at: string | null;
+  red_flags: string[];
+  metadata: Record<string, unknown>;
+  patient?: {
+    id: number;
+    name: string;
+    phone?: string | null;
+  };
+  visit?: {
+    id: number;
+    visit_date?: string | null;
+    chief_complaint?: string | null;
+  };
+  follow_up_submission?: PatientFollowUpSubmission;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type DoctorReviewQueueResponse = {
+  data: DoctorReviewQueueItem[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export type DoctorReviewQueueSummary = {
+  open_count: number;
+  in_review_count: number;
+  urgent_count: number;
+  portal_submission_count: number;
+  latest_open: Array<{
+    id: number;
+    title: string;
+    priority: string;
+    status: string;
+    patient_name: string | null;
+    action_url: string | null;
+    created_at: string | null;
+  }>;
+};
+
 export type PublicFollowUpInvitation = {
   public_id: string;
   purpose: string;
@@ -2627,6 +2692,41 @@ export async function submitPublicFollowUpForm(
     `/api/patient-portal/follow-up/${publicId}/${secret}`,
     normalizePublicFollowUpInput(input)
   );
+
+  return response.data.data;
+}
+
+export async function getDoctorReviewQueue(input?: {
+  status?: DoctorReviewQueueItem["status"] | "";
+  priority?: DoctorReviewQueueItem["priority"] | "";
+  category?: string;
+}): Promise<DoctorReviewQueueResponse> {
+  const response = await api.get("/api/doctor-review-queue", {
+    params: {
+      status: input?.status || null,
+      priority: input?.priority || null,
+      category: input?.category || null,
+      per_page: 30,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getDoctorReviewQueueSummary(): Promise<DoctorReviewQueueSummary> {
+  const response = await api.get("/api/doctor-review-queue/summary");
+
+  return response.data.data;
+}
+
+export async function updateDoctorReviewQueueItem(
+  itemId: string | number,
+  input: {
+    status: DoctorReviewQueueItem["status"];
+    doctor_note?: string | null;
+  }
+): Promise<DoctorReviewQueueItem> {
+  const response = await api.patch(`/api/doctor-review-queue/${itemId}`, input);
 
   return response.data.data;
 }
