@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseQuestionConversationController;
 use App\Http\Controllers\Api\CaseRubricController;
+use App\Http\Controllers\Api\ClinicReportController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\ClinicalDashboardController;
 use App\Http\Controllers\Api\DashboardController;
@@ -47,6 +48,13 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:view_dashboard');
     Route::get('/activity-logs', [AuditLogController::class, 'index'])
         ->middleware('permission:view_activity_logs');
+    Route::middleware('permission:view_activity_logs')->group(function () {
+        Route::get('/clinic-reports', [ClinicReportController::class, 'index']);
+        Route::post('/clinic-reports/generate', [ClinicReportController::class, 'generate']);
+        Route::get('/clinic-reports/{clinicReport}', [ClinicReportController::class, 'show']);
+        Route::get('/clinic-reports/{clinicReport}/export.csv', [ClinicReportController::class, 'exportCsv']);
+        Route::post('/clinic-reports/{clinicReport}/printed', [ClinicReportController::class, 'markPrinted']);
+    });
 
     Route::get('/ai-tasks/{aiTask}', [AiTaskController::class, 'show']);
 

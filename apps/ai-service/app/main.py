@@ -239,6 +239,49 @@ class PatientHandoutResponse(BaseModel):
     sections: List[PatientHandoutSectionModel] = Field(default_factory=list)
 
 
+class ClinicReportSummaryRequest(BaseModel):
+    report_type: str = "monthly"
+    period_start: str
+    period_end: str
+    dashboard_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    response_language: str = "auto"
+    include_finance: bool = True
+    include_safety: bool = True
+    include_follow_ups: bool = True
+    include_recommendations: bool = True
+
+
+class ClinicReportSectionModel(BaseModel):
+    section_key: str
+    category: str = "summary"
+    sort_order: int = 1
+    title: str
+    content: str
+    metrics: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ClinicReportSummaryResponse(BaseModel):
+    title: str
+    resolved_language: str
+
+    executive_summary: str
+    clinical_activity_summary: str
+    outcome_summary: str
+    remedy_summary: str
+    safety_summary: str
+    finance_summary: str
+    follow_up_summary: str
+
+    key_metrics: Dict[str, Any] = Field(default_factory=dict)
+    recommendations: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
+
+    safety_note: str
+
+    sections: List[ClinicReportSectionModel] = Field(default_factory=list)
+
+
 class MissingQuestionConversationStartRequest(BaseModel):
     language: str = "bn-BD"
     response_language: str = "auto"
@@ -874,6 +917,56 @@ def _patient_handout_do_and_dont(language: str) -> List[str]:
         "Note any new symptom or aggravation",
         "Attend the follow-up as advised",
     ]
+
+
+def _clinic_report_resolve_language(requested: Optional[str]) -> str:
+    if requested and requested != "auto":
+        return requested
+
+    return "en-US"
+
+
+def _clinic_report_safety_note(language: str) -> str:
+    if _lang_bn(language):
+        return (
+            "এই রিপোর্টটি ক্লিনিকের internal audit এবং practice improvement-এর জন্য। "
+            "এটি cure-rate claim, public medical proof, বা guaranteed outcome হিসেবে ব্যবহার করা যাবে না।"
+        )
+
+    if language == "hi-IN":
+        return (
+            "यह रिपोर्ट internal clinic audit और practice improvement के लिए है। "
+            "इसे cure-rate claim, public medical proof, या guaranteed outcome statement के रूप में इस्तेमाल न करें."
+        )
+
+    return (
+        "This report is for internal clinic audit and practice improvement. "
+        "It must not be used as a cure-rate claim, public medical proof, or guaranteed outcome statement."
+    )
+
+
+def _clinic_report_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _clinic_report_float(value: Any) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _clinic_report_top_remedy_text(top_remedies: List[Dict[str, Any]]) -> str:
+    names = [
+        f"{item.get('remedy') or item.get('remedy_name') or 'Unknown'} ({item.get('total') or 0})"
+        for item in top_remedies[:3]
+        if isinstance(item, dict)
+    ]
+
+    return ", ".join(names) if names else "No remedy usage data was available."
 
 
 def _patient_handout_warning_list(
@@ -2747,6 +2840,331 @@ def generate_patient_handout(
         do_and_dont=do_and_dont,
         footer_note=footer_note,
         safety_note=_patient_handout_safety_note(language),
+        sections=sections,
+    )
+
+
+@app.post("/clinic-report/monthly-summary", response_model=ClinicReportSummaryResponse)
+def clinic_report_monthly_summary(
+    payload: ClinicReportSummaryRequest,
+) -> ClinicReportSummaryResponse:
+    language = _clinic_report_resolve_language(payload.response_language)
+    snapshot = payload.dashboard_snapshot or {}
+
+    kpis = snapshot.get("kpis") or {}
+    finance = snapshot.get("finance") or {}
+    safety = snapshot.get("safety") or {}
+    outcomes = snapshot.get("outcomes") or {}
+    remedies = snapshot.get("remedies") or {}
+    follow_ups = snapshot.get("follow_ups") or {}
+    clinic_activity = snapshot.get("clinic_activity") or {}
+
+    new_patients = _clinic_report_int(kpis.get("new_patients"))
+    visits = _clinic_report_int(kpis.get("visits"))
+    follow_up_visits = _clinic_report_int(kpis.get("follow_up_visits"))
+    prescriptions = _clinic_report_int(kpis.get("prescriptions"))
+    outcome_analyses = _clinic_report_int(kpis.get("outcome_analyses"))
+    average_progress = _clinic_report_float(kpis.get("average_progress_score"))
+    patient_handouts = _clinic_report_int(kpis.get("patient_handouts"))
+    red_flags = _clinic_report_int(safety.get("red_flag_count"))
+
+    paid_amount = _clinic_report_float(finance.get("paid_amount"))
+    due_amount = _clinic_report_float(finance.get("due_amount"))
+
+    outcome_distribution = outcomes.get("response_level_distribution") or []
+    top_remedies = remedies.get("top_prescribed_remedies") or []
+    top_remedies_text = _clinic_report_top_remedy_text(top_remedies)
+
+    overdue_count = len(follow_ups.get("overdue") or [])
+    due_next_count = len(follow_ups.get("due_next_7_days") or [])
+
+    key_metrics = {
+        "new_patients": new_patients,
+        "visits": visits,
+        "follow_up_visits": follow_up_visits,
+        "prescriptions": prescriptions,
+        "outcome_analyses": outcome_analyses,
+        "average_progress_score": average_progress,
+        "patient_handouts": patient_handouts,
+        "red_flag_count": red_flags,
+        "paid_amount": paid_amount,
+        "due_amount": due_amount,
+        "overdue_follow_ups": overdue_count,
+        "due_next_7_days": due_next_count,
+    }
+
+    if _lang_bn(language):
+        title = f"মাসিক ক্লিনিক রিপোর্ট: {payload.period_start} থেকে {payload.period_end}"
+        executive_summary = (
+            f"এই সময়ে মোট {visits}টি visit, {new_patients}জন নতুন patient, "
+            f"{prescriptions}টি prescription এবং {outcome_analyses}টি follow-up outcome analysis হয়েছে। "
+            f"Average progress score ছিল {average_progress}।"
+        )
+        clinical_activity_summary = (
+            f"Clinic activity অনুযায়ী এই period-এ মোট visit ছিল {visits}, "
+            f"যার মধ্যে follow-up visit ছিল {follow_up_visits}।"
+        )
+        outcome_summary = (
+            f"Outcome analysis সংখ্যা: {outcome_analyses}. Average progress score: {average_progress}. "
+            "এই data doctor-entered follow-up information এবং AI analysis-এর উপর নির্ভরশীল।"
+        )
+        remedy_summary = (
+            f"Top prescribed remedies: {top_remedies_text}. Remedy usage শুধুমাত্র clinic audit-এর জন্য; "
+            "এটি effectiveness claim নয়।"
+        )
+        safety_summary = (
+            f"এই সময়ে red flag alert পাওয়া গেছে {red_flags}টি।"
+            if payload.include_safety
+            else "Safety summary এই report-এ অন্তর্ভুক্ত করা হয়নি।"
+        )
+        finance_summary = (
+            f"Paid amount: {paid_amount} BDT, due amount: {due_amount} BDT।"
+            if payload.include_finance
+            else "Finance summary এই report-এ অন্তর্ভুক্ত করা হয়নি।"
+        )
+        follow_up_summary = (
+            f"Overdue follow-up: {overdue_count}, next 7 days due follow-up: {due_next_count}।"
+            if payload.include_follow_ups
+            else "Follow-up summary এই report-এ অন্তর্ভুক্ত করা হয়নি।"
+        )
+        recommendations = [
+            "Overdue follow-up patient list নিয়মিত review করুন।",
+            "Red flag cases আলাদা priority দিয়ে check করুন।",
+            "Prescription review safety_warning বা incomplete থাকলে final decision-এর আগে review করুন।",
+            "Outcome data public cure-rate claim হিসেবে ব্যবহার করবেন না।",
+        ]
+        limitations = [
+            "Data doctor-entered record এবং generated analysis-এর উপর নির্ভরশীল।",
+            "Outcome score clinical proof নয়; এটি audit indicator মাত্র।",
+            "Small sample size বা incomplete follow-up থাকলে interpretation সীমিত হবে।",
+        ]
+        section_titles = {
+            "overview": "Executive Summary",
+            "activity": "Clinic Activity",
+            "outcomes": "Outcome Summary",
+            "remedies": "Remedy Usage",
+            "safety": "Safety Review",
+            "finance": "Finance Summary",
+            "follow_up": "Follow-up Summary",
+            "recommendations": "Recommendations",
+            "limitations": "Limitations",
+        }
+    elif language == "hi-IN":
+        title = f"Monthly Clinic Report: {payload.period_start} to {payload.period_end}"
+        executive_summary = (
+            f"इस period में clinic ने {visits} visits, {new_patients} new patients, "
+            f"{prescriptions} prescriptions, और {outcome_analyses} follow-up outcome analyses record किए। "
+            f"Average progress score {average_progress} था।"
+        )
+        clinical_activity_summary = (
+            f"Clinic activity में {visits} total visits थे, जिनमें {follow_up_visits} follow-up visits थे."
+        )
+        outcome_summary = (
+            f"Outcome analyses completed: {outcome_analyses}. Average progress score: {average_progress}. "
+            "यह doctor-entered follow-up data और AI analysis पर निर्भर है."
+        )
+        remedy_summary = (
+            f"Top prescribed remedies: {top_remedies_text}. Remedy usage internal audit के लिए है; "
+            "इसे effectiveness claim न समझें."
+        )
+        safety_summary = (
+            f"{red_flags} red-flag alerts इस period में detect हुए."
+            if payload.include_safety
+            else "Safety summary इस report में include नहीं की गई."
+        )
+        finance_summary = (
+            f"Paid amount: {paid_amount} BDT. Due amount: {due_amount} BDT."
+            if payload.include_finance
+            else "Finance summary इस report में include नहीं की गई."
+        )
+        follow_up_summary = (
+            f"Overdue follow-ups: {overdue_count}. Next 7 days due follow-ups: {due_next_count}."
+            if payload.include_follow_ups
+            else "Follow-up summary इस report में include नहीं की गई."
+        )
+        recommendations = [
+            "Review overdue follow-up patients regularly.",
+            "Prioritize red-flag cases for clinical review.",
+            "Review prescription safety warnings or incomplete reviews before final decisions.",
+            "Do not use outcome data as a public cure-rate claim.",
+        ]
+        limitations = [
+            "The report depends on doctor-entered records and generated analyses.",
+            "Outcome score is an audit indicator, not clinical proof.",
+            "Small sample size or incomplete follow-up limits interpretation.",
+        ]
+        section_titles = {
+            "overview": "Executive Summary",
+            "activity": "Clinic Activity",
+            "outcomes": "Outcome Summary",
+            "remedies": "Remedy Usage",
+            "safety": "Safety Review",
+            "finance": "Finance Summary",
+            "follow_up": "Follow-up Summary",
+            "recommendations": "Recommendations",
+            "limitations": "Limitations",
+        }
+    else:
+        title = f"Monthly Clinic Report: {payload.period_start} to {payload.period_end}"
+        executive_summary = (
+            f"During this period, the clinic recorded {visits} visits, {new_patients} new patients, "
+            f"{prescriptions} prescriptions, and {outcome_analyses} follow-up outcome analyses. "
+            f"The average progress score was {average_progress}."
+        )
+        clinical_activity_summary = (
+            f"Clinic activity included {visits} total visits, including {follow_up_visits} follow-up visits."
+        )
+        outcome_summary = (
+            f"Outcome analyses completed: {outcome_analyses}. Average progress score: {average_progress}. "
+            "This depends on doctor-entered follow-up data and AI analysis."
+        )
+        remedy_summary = (
+            f"Top prescribed remedies: {top_remedies_text}. Remedy usage is for internal audit only "
+            "and should not be interpreted as an effectiveness claim."
+        )
+        safety_summary = (
+            f"{red_flags} red-flag alerts were detected during this period. "
+            "Any safety warning should be reviewed clinically."
+            if payload.include_safety
+            else "Safety summary was not included in this report."
+        )
+        finance_summary = (
+            f"Paid amount: {paid_amount} BDT. Due amount: {due_amount} BDT."
+            if payload.include_finance
+            else "Finance summary was not included in this report."
+        )
+        follow_up_summary = (
+            f"Overdue follow-ups: {overdue_count}. Follow-ups due in the next 7 days: {due_next_count}."
+            if payload.include_follow_ups
+            else "Follow-up summary was not included in this report."
+        )
+        recommendations = [
+            "Review overdue follow-up patients regularly.",
+            "Prioritize red-flag cases for clinical review.",
+            "Review prescription safety warnings or incomplete reviews before final decisions.",
+            "Do not use outcome data as a public cure-rate claim.",
+        ]
+        limitations = [
+            "The report depends on doctor-entered records and generated analyses.",
+            "Outcome score is an audit indicator, not clinical proof.",
+            "Small sample size or incomplete follow-up limits interpretation.",
+        ]
+        section_titles = {
+            "overview": "Executive Summary",
+            "activity": "Clinic Activity",
+            "outcomes": "Outcome Summary",
+            "remedies": "Remedy Usage",
+            "safety": "Safety Review",
+            "finance": "Finance Summary",
+            "follow_up": "Follow-up Summary",
+            "recommendations": "Recommendations",
+            "limitations": "Limitations",
+        }
+
+    recommendation_content = (
+        "\n".join([f"- {item}" for item in recommendations])
+        if payload.include_recommendations
+        else "Recommendations were not included in this report."
+    )
+
+    sections = [
+        ClinicReportSectionModel(
+            section_key="overview",
+            category="summary",
+            sort_order=1,
+            title=section_titles["overview"],
+            content=executive_summary,
+            metrics=key_metrics,
+        ),
+        ClinicReportSectionModel(
+            section_key="activity",
+            category="analytics",
+            sort_order=2,
+            title=section_titles["activity"],
+            content=clinical_activity_summary,
+            metrics={
+                "visits_by_day": clinic_activity.get("visits_by_day", []),
+                "new_patients_by_day": clinic_activity.get("new_patients_by_day", []),
+                "visit_type_distribution": clinic_activity.get("visit_type_distribution", []),
+            },
+        ),
+        ClinicReportSectionModel(
+            section_key="outcomes",
+            category="analytics",
+            sort_order=3,
+            title=section_titles["outcomes"],
+            content=outcome_summary,
+            metrics={
+                "response_level_distribution": outcome_distribution,
+                "progress_score_trend": outcomes.get("progress_score_trend") or [],
+                "average_progress_score": average_progress,
+            },
+        ),
+        ClinicReportSectionModel(
+            section_key="remedies",
+            category="analytics",
+            sort_order=4,
+            title=section_titles["remedies"],
+            content=remedy_summary,
+            metrics={
+                "top_prescribed_remedies": top_remedies,
+                "top_potencies": remedies.get("top_potencies") or [],
+            },
+        ),
+        ClinicReportSectionModel(
+            section_key="safety",
+            category="safety",
+            sort_order=5,
+            title=section_titles["safety"],
+            content=safety_summary,
+            metrics=safety if payload.include_safety else {},
+        ),
+        ClinicReportSectionModel(
+            section_key="finance",
+            category="finance",
+            sort_order=6,
+            title=section_titles["finance"],
+            content=finance_summary,
+            metrics=finance if payload.include_finance else {},
+        ),
+        ClinicReportSectionModel(
+            section_key="follow_up",
+            category="follow_up",
+            sort_order=7,
+            title=section_titles["follow_up"],
+            content=follow_up_summary,
+            metrics=follow_ups if payload.include_follow_ups else {},
+        ),
+        ClinicReportSectionModel(
+            section_key="recommendations",
+            category="recommendation",
+            sort_order=8,
+            title=section_titles["recommendations"],
+            content=recommendation_content,
+        ),
+        ClinicReportSectionModel(
+            section_key="limitations",
+            category="limitation",
+            sort_order=9,
+            title=section_titles["limitations"],
+            content="\n".join([f"- {item}" for item in limitations]),
+        ),
+    ]
+
+    return ClinicReportSummaryResponse(
+        title=title,
+        resolved_language=language,
+        executive_summary=executive_summary,
+        clinical_activity_summary=clinical_activity_summary,
+        outcome_summary=outcome_summary,
+        remedy_summary=remedy_summary,
+        safety_summary=safety_summary,
+        finance_summary=finance_summary,
+        follow_up_summary=follow_up_summary,
+        key_metrics=key_metrics,
+        recommendations=recommendations if payload.include_recommendations else [],
+        limitations=limitations,
+        safety_note=_clinic_report_safety_note(language),
         sections=sections,
     )
 
