@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AiTaskController;
+use App\Http\Controllers\Api\AdvancedSearchController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseQuestionConversationController;
@@ -48,6 +49,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:view_dashboard');
     Route::get('/activity-logs', [AuditLogController::class, 'index'])
         ->middleware('permission:view_activity_logs');
+    Route::get('/search/advanced', [AdvancedSearchController::class, 'index'])
+        ->middleware('permission:view_dashboard');
     Route::middleware('permission:view_activity_logs')->group(function () {
         Route::get('/clinic-reports', [ClinicReportController::class, 'index']);
         Route::post('/clinic-reports/generate', [ClinicReportController::class, 'generate']);

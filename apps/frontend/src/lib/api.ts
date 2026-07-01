@@ -364,6 +364,67 @@ export async function markClinicReportPrinted(
   return response.data.data;
 }
 
+export type AdvancedSearchType =
+  | "patients"
+  | "visits"
+  | "prescriptions"
+  | "remedy_suggestions"
+  | "follow_up_analyses"
+  | "potency_guidance"
+  | "remedy_relationships"
+  | "prescription_reviews"
+  | "patient_handouts"
+  | "clinic_reports";
+
+export type AdvancedSearchResult = {
+  type: AdvancedSearchType;
+  label: string;
+  id: number;
+  patient_id: number | null;
+  patient_name: string | null;
+  visit_id: number | null;
+  title: string;
+  subtitle: string | null;
+  snippet: string | null;
+  url: string | null;
+  created_at: string | null;
+  score: number;
+  metadata: Record<string, unknown>;
+};
+
+export type AdvancedSearchResponse = {
+  data: AdvancedSearchResult[];
+  meta: {
+    query: string;
+    types: AdvancedSearchType[];
+    total: number;
+  };
+};
+
+export async function advancedSearch(input: {
+  q: string;
+  types?: AdvancedSearchType[];
+  patient_id?: number | null;
+  visit_id?: number | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  limit?: number;
+}): Promise<AdvancedSearchResponse> {
+  const response = await api.get("/api/search/advanced", {
+    params: {
+      q: input.q,
+      types: input.types,
+      patient_id: input.patient_id ?? null,
+      visit_id: input.visit_id ?? null,
+      date_from: input.date_from ?? null,
+      date_to: input.date_to ?? null,
+      limit: input.limit ?? 50,
+    },
+  });
+
+  return response.data;
+}
+
 export type AiTask = {
   id: number;
   user_id: number;

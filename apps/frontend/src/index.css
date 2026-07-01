@@ -3603,6 +3603,194 @@ button:disabled {
   text-align: center;
 }
 
+.advanced-search-page {
+  display: grid;
+  gap: 20px;
+}
+
+.advanced-search-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.advanced-search-form {
+  display: grid;
+  gap: 16px;
+}
+
+.advanced-search-box {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d7dfd8;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.advanced-search-box input {
+  border: 0;
+  outline: none;
+  color: #102018;
+  font-size: 16px;
+  background: transparent;
+  min-width: 0;
+}
+
+.advanced-search-filters {
+  border: 1px solid #edf0eb;
+  background: #fbfcfa;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.advanced-search-filters summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  color: #102018;
+}
+
+.search-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 240px));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.search-filter-grid label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.search-filter-grid input {
+  border: 1px solid #d7dfd8;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.search-type-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.search-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d7dfd8;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 800;
+  color: #425245;
+}
+
+.search-results-section {
+  display: grid;
+  gap: 18px;
+}
+
+.search-results-summary {
+  border: 1px solid #d7dfd8;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #425245;
+}
+
+.search-result-group {
+  display: grid;
+  gap: 12px;
+}
+
+.search-result-group h3 {
+  margin: 0;
+  color: #102018;
+}
+
+.search-result-list {
+  display: grid;
+  gap: 10px;
+}
+
+.search-result-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.search-result-card {
+  border: 1px solid #edf0eb;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  min-width: 0;
+}
+
+.search-result-link:hover .search-result-card {
+  border-color: #145c43;
+  transform: translateY(-1px);
+}
+
+.search-result-card h4 {
+  margin: 4px 0;
+  color: #102018;
+  overflow-wrap: anywhere;
+}
+
+.search-result-subtitle {
+  margin: 0;
+  color: #708074;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.search-result-snippet {
+  margin: 8px 0 0;
+  color: #425245;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.search-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.search-result-meta span {
+  border: 1px solid #edf0eb;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #708074;
+  background: #fbfcfa;
+}
+
+.search-result-card.follow_up_analyses,
+.search-result-card.prescription_reviews {
+  border-color: #ffe5b5;
+  background: #fffdf7;
+}
+
+.search-result-card.patient_handouts,
+.search-result-card.clinic_reports {
+  border-color: #d9e8ff;
+  background: #f7fbff;
+}
+
 .clinic-reports-page {
   display: grid;
   gap: 20px;
@@ -3942,6 +4130,18 @@ button:disabled {
 
   .print-grid,
   .print-two-column-list {
+    grid-template-columns: 1fr;
+  }
+
+  .advanced-search-box {
+    grid-template-columns: 24px 1fr;
+  }
+
+  .advanced-search-box button {
+    grid-column: 1 / -1;
+  }
+
+  .search-filter-grid {
     grid-template-columns: 1fr;
   }
 
