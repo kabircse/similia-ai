@@ -1524,6 +1524,125 @@ export async function generatePotencyGuidance(
   return response.data.data;
 }
 
+export type RemedyRelationshipPurpose =
+  | "general"
+  | "before_prescription"
+  | "follow_up"
+  | "change_remedy"
+  | "antidote_check"
+  | "compare";
+
+export type RemedyRelationshipFinding = {
+  id: number;
+  remedy_relationship_run_id: number;
+  related_remedy_id: number | null;
+  related_remedy_code: string | null;
+  related_remedy_name: string | null;
+  relationship_type: string;
+  direction: string | null;
+  rank: number;
+  confidence_score: string | number;
+  summary: string | null;
+  clinical_note: string | null;
+  caution: string | null;
+  evidence: string[];
+  source_chunks: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type RemedyRelationshipRun = {
+  id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  doctor_id: number;
+  primary_remedy_id: number | null;
+  primary_remedy_code: string | null;
+  primary_remedy_name: string;
+  comparison_remedy_id: number | null;
+  comparison_remedy_code: string | null;
+  comparison_remedy_name: string | null;
+  purpose: RemedyRelationshipPurpose | string;
+  status: string;
+  response_language: AiResponseLanguage | string;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  follow_up_snapshot: Record<string, unknown>;
+  retrieved_sources: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  relationship_summary: string | null;
+  sequence_guidance: string | null;
+  antidote_guidance: string | null;
+  inimical_warning: string | null;
+  complementary_note: string | null;
+  cautions: string[];
+  doctor_review_points: string[];
+  suggested_questions: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  findings: RemedyRelationshipFinding[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type RemedyRelationshipResponse = {
+  data: RemedyRelationshipRun[];
+};
+
+export async function getRemedyRelationshipRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RemedyRelationshipResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-relationships`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generateRemedyRelationship(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    primary_remedy_id?: number | null;
+    primary_remedy_code?: string | null;
+    primary_remedy_name?: string | null;
+    comparison_remedy_id?: number | null;
+    comparison_remedy_code?: string | null;
+    comparison_remedy_name?: string | null;
+    purpose?: RemedyRelationshipPurpose;
+    prescription_id?: number | null;
+    include_visit_context?: boolean;
+    include_follow_up_context?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<RemedyRelationshipRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-relationships/generate`,
+    {
+      primary_remedy_id: input.primary_remedy_id ?? null,
+      primary_remedy_code: input.primary_remedy_code ?? null,
+      primary_remedy_name: input.primary_remedy_name ?? null,
+      comparison_remedy_id: input.comparison_remedy_id ?? null,
+      comparison_remedy_code: input.comparison_remedy_code ?? null,
+      comparison_remedy_name: input.comparison_remedy_name ?? null,
+      purpose: input.purpose ?? "general",
+      prescription_id: input.prescription_id ?? null,
+      include_visit_context: input.include_visit_context ?? true,
+      include_follow_up_context: input.include_follow_up_context ?? true,
+      response_language: input.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionSourceMethod =
   | "manual"
   | "weighted"

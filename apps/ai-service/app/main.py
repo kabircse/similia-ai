@@ -126,6 +126,45 @@ class RemedySuggestResponse(BaseModel):
     engine: str
 
 
+class RemedyRelationshipRequest(BaseModel):
+    primary_remedy: Dict[str, Any] = Field(default_factory=dict)
+    comparison_remedy: Dict[str, Any] = Field(default_factory=dict)
+    purpose: str = "general"
+    case_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    prescription_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    follow_up_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    knowledge_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    response_language: str = "auto"
+
+
+class RemedyRelationshipFindingModel(BaseModel):
+    related_remedy_code: Optional[str] = None
+    related_remedy_name: Optional[str] = None
+    relationship_type: str = "unknown"
+    direction: Optional[str] = None
+    rank: int = 1
+    confidence_score: float = 0
+    summary: Optional[str] = None
+    clinical_note: Optional[str] = None
+    caution: Optional[str] = None
+    evidence: List[str] = Field(default_factory=list)
+    source_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RemedyRelationshipResponse(BaseModel):
+    relationship_summary: str
+    sequence_guidance: str
+    antidote_guidance: str
+    inimical_warning: str
+    complementary_note: str
+    cautions: List[str] = Field(default_factory=list)
+    doctor_review_points: List[str] = Field(default_factory=list)
+    suggested_questions: List[str] = Field(default_factory=list)
+    findings: List[RemedyRelationshipFindingModel] = Field(default_factory=list)
+    safety_note: str
+
+
 class MissingQuestionConversationStartRequest(BaseModel):
     language: str = "bn-BD"
     response_language: str = "auto"
@@ -514,6 +553,122 @@ def _source_chunks(
         )
 
     return chunks
+
+
+def _relationship_source_chunks(
+    knowledge_chunks: List[Dict[str, Any]],
+    limit: int = 5,
+) -> List[Dict[str, Any]]:
+    chunks = []
+
+    for chunk in knowledge_chunks[:limit]:
+        chunks.append(
+            {
+                "type": chunk.get("source_type"),
+                "id": chunk.get("id"),
+                "source_title": chunk.get("source_title"),
+                "author": chunk.get("author"),
+                "title": chunk.get("title"),
+                "source_ref": chunk.get("source_ref"),
+                "content": _short_text(chunk.get("content"), 500),
+                "distance": chunk.get("distance"),
+            }
+        )
+
+    return chunks
+
+
+def _relationship_detect_types(text: str) -> List[str]:
+    lowered = text.lower()
+    detected: List[str] = []
+
+    checks = [
+        ("inimical", ["inimical", "incompatible", "do not follow"]),
+        ("antidote", ["antidote", "antidotal", "antidotes", "antidoted"]),
+        ("follows_well", ["follows well", "follow well", "followed well", "follows"]),
+        ("followed_by", ["followed by", "is followed by"]),
+        ("complementary", ["complementary", "complement", "complements"]),
+    ]
+
+    for relationship_type, keywords in checks:
+        if any(keyword in lowered for keyword in keywords):
+            detected.append(relationship_type)
+
+    return detected
+
+
+def _relationship_evidence(
+    chunks: List[Dict[str, Any]],
+    relationship_type: str,
+    primary_name: str,
+    comparison_name: str,
+) -> List[str]:
+    keywords_by_type = {
+        "complementary": ["complementary", "complement"],
+        "follows_well": ["follows well", "follow well", "follows"],
+        "followed_by": ["followed by"],
+        "antidote": ["antidote", "antidotal", "antidotes"],
+        "inimical": ["inimical", "incompatible"],
+    }
+    keywords = keywords_by_type.get(relationship_type, [])
+    evidence: List[str] = []
+
+    for chunk in chunks:
+        content = str(chunk.get("content") or "")
+        lowered = content.lower()
+        names_match = (
+            primary_name.lower() in lowered
+            or (comparison_name and comparison_name.lower() in lowered)
+        )
+        type_match = any(keyword in lowered for keyword in keywords)
+
+        if type_match or names_match:
+            evidence.append(_short_text(content, 280))
+
+    if not evidence and chunks:
+        evidence.append(_short_text(chunks[0].get("content"), 280))
+
+    return evidence[:4]
+
+
+def _relationship_safety_note(language: str) -> str:
+    if _lang_bn(language):
+        return (
+            "এটি চিকিৎসকের জন্য remedy relationship decision-support মাত্র। "
+            "এটি স্বয়ংক্রিয় prescription, antidote, repeat, remedy change বা potency সিদ্ধান্ত নয়। "
+            "চূড়ান্ত clinical action চিকিৎসক সিদ্ধান্ত নিবেন।"
+        )
+
+    if language == "hi-IN":
+        return (
+            "यह doctor-facing remedy relationship decision-support है। "
+            "यह automatic prescription, antidote, repeat, remedy change, या potency decision नहीं है। "
+            "Final clinical action डॉक्टर तय करेंगे।"
+        )
+
+    return (
+        "This is doctor-facing remedy relationship decision support only. "
+        "It is not an automatic prescription, antidote, repeat, remedy change, or potency decision. "
+        "Final clinical action must be decided by the practitioner."
+    )
+
+
+def _relationship_text_from_payload(payload: RemedyRelationshipRequest) -> str:
+    chunks_text = "\n".join(
+        [str(chunk.get("content") or "") for chunk in payload.knowledge_chunks]
+    )
+
+    return "\n".join(
+        [
+            str(payload.primary_remedy.get("remedy_name") or ""),
+            str(payload.comparison_remedy.get("remedy_name") or ""),
+            str(payload.case_snapshot.get("chief_complaint") or ""),
+            str(payload.case_snapshot.get("raw_case_text") or ""),
+            str(payload.prescription_snapshot.get("remedy_name") or ""),
+            str(payload.follow_up_snapshot.get("analysis_summary") or ""),
+            chunks_text,
+        ]
+    )
 
 
 def _lang_bn(language: Optional[str]) -> bool:
@@ -2075,6 +2230,237 @@ def compare_materia_medica(payload: MateriaMedicaCompareRequest):
             engine="local_materia_medica_rag_v1",
         )
     }
+
+
+@app.post("/remedy/relationship", response_model=RemedyRelationshipResponse)
+def remedy_relationship(
+    payload: RemedyRelationshipRequest,
+) -> RemedyRelationshipResponse:
+    primary = _dict_or_empty(payload.primary_remedy)
+    comparison = _dict_or_empty(payload.comparison_remedy)
+    primary_name = str(primary.get("remedy_name") or "Primary remedy")
+    comparison_name = str(comparison.get("remedy_name") or "")
+    comparison_code = comparison.get("remedy_code")
+    purpose_label = payload.purpose.replace("_", " ")
+    relationship_text = _relationship_text_from_payload(payload)
+    language = resolve_response_language(
+        payload.response_language,
+        relationship_text,
+    )
+    source_chunks = _relationship_source_chunks(payload.knowledge_chunks)
+    relationship_types = _relationship_detect_types(relationship_text)
+
+    if not relationship_types:
+        relationship_types = ["compare" if comparison_name else "unknown"]
+
+    findings: List[RemedyRelationshipFindingModel] = []
+    confidence_base = 35 if not payload.knowledge_chunks else 55
+    confidence = min(
+        92,
+        confidence_base
+        + min(25, len(payload.knowledge_chunks) * 5)
+        + (10 if comparison_name else 0),
+    )
+
+    for index, relationship_type in enumerate(relationship_types[:5]):
+        evidence = _relationship_evidence(
+            chunks=payload.knowledge_chunks,
+            relationship_type=relationship_type,
+            primary_name=primary_name,
+            comparison_name=comparison_name,
+        )
+        related_name = comparison_name or None
+        rel_label = relationship_type.replace("_", " ")
+
+        if _lang_bn(language):
+            summary = (
+                f"Source chunks এ {primary_name}"
+                + (f" এবং {comparison_name}" if comparison_name else "")
+                + f" নিয়ে {rel_label} relationship signal পাওয়া গেছে."
+            )
+            clinical_note = (
+                "এটি relationship clue মাত্র; current totality, remedy response, "
+                "aggravation এবং generals review করে সিদ্ধান্ত নিন."
+            )
+        elif language == "hi-IN":
+            summary = (
+                f"Source chunks में {primary_name}"
+                + (f" और {comparison_name}" if comparison_name else "")
+                + f" के लिए {rel_label} relationship signal मिला."
+            )
+            clinical_note = (
+                "यह relationship clue है; current totality, remedy response, "
+                "aggravation और generals review करके निर्णय लें."
+            )
+        else:
+            summary = (
+                f"Source chunks suggest a {rel_label} relationship signal for {primary_name}"
+                + (f" and {comparison_name}" if comparison_name else "")
+                + "."
+            )
+            clinical_note = (
+                "Use this only as a relationship clue; review current totality, "
+                "remedy response, aggravation, and generals before action."
+            )
+
+        caution = None
+        if relationship_type == "inimical":
+            caution = (
+                "Inimical warning: avoid mechanical sequencing or remedy change without careful review."
+            )
+            if _lang_bn(language):
+                caution = "Inimical warning: careful review ছাড়া mechanical sequencing বা remedy change করবেন না."
+            elif language == "hi-IN":
+                caution = "Inimical warning: careful review के बिना mechanical sequencing या remedy change न करें."
+        elif relationship_type == "antidote":
+            caution = (
+                "Antidote relationship does not automatically mean antidoting is needed."
+            )
+            if _lang_bn(language):
+                caution = "Antidote relationship মানেই antidoting দরকার, এমন নয়."
+            elif language == "hi-IN":
+                caution = "Antidote relationship का मतलब automatic antidoting नहीं है."
+
+        findings.append(
+            RemedyRelationshipFindingModel(
+                related_remedy_code=comparison_code,
+                related_remedy_name=related_name,
+                relationship_type=relationship_type,
+                direction="unclear",
+                rank=index + 1,
+                confidence_score=round(confidence - (index * 4), 2),
+                summary=summary,
+                clinical_note=clinical_note,
+                caution=caution,
+                evidence=evidence,
+                source_chunks=source_chunks,
+                metadata={
+                    "purpose": payload.purpose,
+                    "source_chunks_count": len(payload.knowledge_chunks),
+                },
+            )
+        )
+
+    if _lang_bn(language):
+        relationship_summary = (
+            f"{primary_name}"
+            + (f" ও {comparison_name}" if comparison_name else "")
+            + f" এর remedy relationship review ({purpose_label}) তৈরি হয়েছে. "
+            "Relationship, sequence, antidote এবং inimical points source chunks দিয়ে review করুন."
+        )
+        sequence_guidance = (
+            "Remedy sequence করার আগে current case totality, first prescription response, "
+            "old symptom return, aggravation এবং general wellbeing review করুন."
+        )
+        antidote_guidance = (
+            "Antidote কেবল স্পষ্ট clinical need থাকলে বিবেচনা করুন; relationship book note একা যথেষ্ট নয়."
+        )
+        inimical_warning = (
+            "Inimical বা sequence caution থাকলে repeat/change করার আগে extra clinical review প্রয়োজন."
+        )
+        complementary_note = (
+            "Complementary relationship helpful clue হতে পারে, কিন্তু automatic remedy change নয়."
+        )
+        cautions = [
+            "Doctor decides final repeat, wait, antidote, remedy change, or referral.",
+            "Remedy names, potency names এবং source references অপরিবর্তিত রাখা হয়েছে.",
+        ]
+        doctor_review_points = [
+            "বর্তমান totality এবং generals primary remedy-এর সাথে এখনও মেলে কি?",
+            "Improvement এখনও চলছে কি, নাকি case stalled/worse হয়েছে?",
+            "New symptoms remedy action, disease progress, না external factor থেকে এসেছে?",
+            "Comparison remedy সত্যিই better similimum কিনা repertory ও materia medica দিয়ে confirm করুন.",
+        ]
+        suggested_questions = [
+            "Primary remedy-এর পরে প্রথম কী পরিবর্তন হয়েছিল?",
+            "কোন old symptom ফিরে এসেছে কি?",
+            "Aggravation ছিল কি, এবং তার পরে improvement হয়েছে কি?",
+            "Comparison remedy বিবেচনার প্রধান কারণ কী?",
+        ]
+    elif language == "hi-IN":
+        relationship_summary = (
+            f"{primary_name}"
+            + (f" और {comparison_name}" if comparison_name else "")
+            + f" के लिए remedy relationship review ({purpose_label}) तैयार है. "
+            "Relationship, sequence, antidote और inimical points source chunks से review करें."
+        )
+        sequence_guidance = (
+            "Remedy sequence से पहले current case totality, first prescription response, "
+            "old symptom return, aggravation और general wellbeing review करें."
+        )
+        antidote_guidance = (
+            "Antidote केवल clear clinical need पर consider करें; relationship book note अकेला काफी नहीं है."
+        )
+        inimical_warning = (
+            "Inimical या sequence caution हो तो repeat/change से पहले extra clinical review करें."
+        )
+        complementary_note = (
+            "Complementary relationship helpful clue हो सकता है, लेकिन automatic remedy change नहीं."
+        )
+        cautions = [
+            "Doctor final repeat, wait, antidote, remedy change, या referral decide करेंगे.",
+            "Remedy names, potency names और source references unchanged रखे गए हैं.",
+        ]
+        doctor_review_points = [
+            "Current totality और generals अभी भी primary remedy से match करते हैं?",
+            "Improvement जारी है या case stalled/worse हुआ?",
+            "New symptoms remedy action, disease progress, या external factor से आए?",
+            "Comparison remedy को repertory और materia medica से confirm करें.",
+        ]
+        suggested_questions = [
+            "Primary remedy के बाद सबसे पहले क्या बदला?",
+            "कोई old symptom वापस आया?",
+            "Aggravation था, और उसके बाद improvement हुआ?",
+            "Comparison remedy consider करने का मुख्य कारण क्या है?",
+        ]
+    else:
+        relationship_summary = (
+            f"Source-backed remedy relationship review generated for {primary_name}"
+            + (f" and {comparison_name}" if comparison_name else "")
+            + f" for {purpose_label}."
+        )
+        sequence_guidance = (
+            "Before sequencing remedies, review the current totality, response to the first prescription, "
+            "return of old symptoms, aggravation pattern, and general wellbeing."
+        )
+        antidote_guidance = (
+            "Consider antidoting only when there is a clear clinical need; a relationship note alone is not enough."
+        )
+        inimical_warning = (
+            "If an inimical or sequence caution is present, use extra review before repeating or changing remedies."
+        )
+        complementary_note = (
+            "A complementary relationship can be a helpful clue, but it does not automatically justify a remedy change."
+        )
+        cautions = [
+            "Doctor decides final repeat, wait, antidote, remedy change, or referral.",
+            "Remedy names, potency names, and source references are preserved.",
+        ]
+        doctor_review_points = [
+            "Does the current totality and generals still match the primary remedy?",
+            "Is improvement still continuing, or has the case stalled or worsened?",
+            "Are new symptoms from remedy action, disease progress, or an external factor?",
+            "Confirm the comparison remedy through repertory and materia medica before changing.",
+        ]
+        suggested_questions = [
+            "What changed first after the primary remedy?",
+            "Did any old symptom return?",
+            "Was there aggravation, and was it followed by improvement?",
+            "What is the main reason for considering the comparison remedy?",
+        ]
+
+    return RemedyRelationshipResponse(
+        relationship_summary=relationship_summary,
+        sequence_guidance=sequence_guidance,
+        antidote_guidance=antidote_guidance,
+        inimical_warning=inimical_warning,
+        complementary_note=complementary_note,
+        cautions=cautions,
+        doctor_review_points=doctor_review_points,
+        suggested_questions=suggested_questions,
+        findings=findings,
+        safety_note=_relationship_safety_note(language),
+    )
 
 
 @app.post("/remedy/suggest", response_model=RemedySuggestResponse)
