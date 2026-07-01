@@ -5,6 +5,7 @@ import {
   Clock,
   FileText,
   ClipboardList,
+  Bell,
 } from "lucide-react";
 import { getDashboardOverview } from "../lib/api";
 import { Link } from "react-router";
@@ -14,6 +15,7 @@ const summaryIcons = {
   today_visits: CalendarDays,
   pending_followups: Clock,
   prescriptions_saved: FileText,
+  unread_notifications: Bell,
 };
 
 const summaryLabels = {
@@ -21,6 +23,7 @@ const summaryLabels = {
   today_visits: "Today’s Visits",
   pending_followups: "Pending Follow-ups",
   prescriptions_saved: "Prescriptions Saved",
+  unread_notifications: "Unread Notifications",
 };
 
 export function DashboardPage() {

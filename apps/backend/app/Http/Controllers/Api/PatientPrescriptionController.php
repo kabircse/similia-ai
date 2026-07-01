@@ -10,6 +10,7 @@ use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationResult;
 use App\Services\Audit\AuditLogger;
+use App\Services\Remedies\RemedyResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -34,6 +35,7 @@ class PatientPrescriptionController extends Controller
         SavePatientPrescriptionRequest $request,
         Patient $patient,
         PatientVisit $visit,
+        RemedyResolver $remedyResolver,
         AuditLogger $auditLogger
     ): PatientPrescriptionResource {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -59,6 +61,19 @@ class PatientPrescriptionController extends Controller
 
         if (empty($data['source_method'])) {
             $data['source_method'] = 'manual';
+        }
+
+        $resolvedRemedy = $remedyResolver->findByText($data['remedy_code'] ?? null)
+            ?: $remedyResolver->findByText($data['remedy_name'] ?? null);
+
+        $data['remedy_id'] = $resolvedRemedy?->id;
+
+        if (empty($data['remedy_code']) && $resolvedRemedy) {
+            $data['remedy_code'] = $resolvedRemedy->code;
+        }
+
+        if (empty($data['remedy_name']) && $resolvedRemedy) {
+            $data['remedy_name'] = $resolvedRemedy->name;
         }
 
         $data['patient_id'] = $patient->id;
@@ -105,8 +120,7 @@ class PatientPrescriptionController extends Controller
         Patient $patient,
         PatientVisit $visit,
         AuditLogger $auditLogger
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $this->ensureCanAccessVisit($request, $patient, $visit);
 
         $prescription = PatientPrescription::query()

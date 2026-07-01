@@ -75,5 +75,38 @@ class PatientVisit extends Model
     public function portalFollowUpSubmissions(): HasMany
     {
         return $this->hasMany(PatientFollowUpSubmission::class, 'source_patient_visit_id');
+    public function voiceTranscripts(): HasMany
+    {
+        return $this->hasMany(VoiceTranscript::class);
+    }
+
+    public function questionSessions(): HasMany
+    {
+        return $this->hasMany(CaseQuestionSession::class);
+    }
+
+    public function followUpAnalysisRuns(): HasMany
+    {
+        return $this->hasMany(FollowUpAnalysisRun::class);
+    }
+
+    public function potencyGuidanceRuns(): HasMany
+    {
+        return $this->hasMany(PotencyGuidanceRun::class);
+    }
+
+    public function remedyRelationshipRuns(): HasMany
+    {
+        return $this->hasMany(RemedyRelationshipRun::class);
+    }
+
+    public function prescriptionReviewRuns(): HasMany
+    {
+        return $this->hasMany(PrescriptionReviewRun::class);
+    }
+
+    public function patientHandoutRuns(): HasMany
+    {
+        return $this->hasMany(PatientHandoutRun::class);
     }
 }

@@ -3,16 +3,28 @@ name: Similia AI CI
 on:
   push:
     branches:
+      - dev
       - main
-      - "feature/**"
+
   pull_request:
     branches:
+      - dev
       - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: similia-ai-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
     name: Laravel Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -94,6 +106,7 @@ jobs:
   frontend:
     name: React Frontend Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     defaults:
       run:
@@ -122,6 +135,7 @@ jobs:
   ai-service:
     name: FastAPI AI Service Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       PYTHONPATH: ${{ github.workspace }}/apps/ai-service
@@ -138,6 +152,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/ai-service/requirements.txt
 
       - name: Install Python dependencies
         run: |

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/routes/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { AdvancedSearchPage } from "./pages/AdvancedSearchPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PatientsPage } from "./pages/PatientsPage";
@@ -10,7 +11,11 @@ import { VisitFormPage } from "./pages/VisitFormPage";
 import { VisitDetailPage } from "./pages/VisitDetailPage";
 import { ActivityLogPage } from "./pages/ActivityLogPage";
 import { ClinicSettingsPage } from "./pages/ClinicSettingsPage";
+import { ClinicalDashboardPage } from "./pages/ClinicalDashboardPage";
+import { ClinicReportPrintPage } from "./pages/ClinicReportPrintPage";
+import { ClinicReportsPage } from "./pages/ClinicReportsPage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
+import { PatientHandoutPrintPage } from "./pages/print/PatientHandoutPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PublicFollowUpFormPage } from "./pages/PublicFollowUpFormPage";
@@ -52,10 +57,37 @@ function App() {
       />
 
       <Route
+        path="/clinical-dashboard"
+        element={
+          <ProtectedLayout>
+            <ClinicalDashboardPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/clinic-reports"
+        element={
+          <ProtectedLayout>
+            <ClinicReportsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
         path="/patients"
         element={
           <ProtectedLayout>
             <PatientsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/search"
+        element={
+          <ProtectedLayout>
+            <AdvancedSearchPage />
           </ProtectedLayout>
         }
       />
@@ -152,6 +184,24 @@ function App() {
         element={
           <ProtectedRoute>
             <PrescriptionPrintPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/:visitId/handouts/:handoutId/print"
+        element={
+          <ProtectedRoute>
+            <PatientHandoutPrintPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/clinic-reports/:reportId/print"
+        element={
+          <ProtectedRoute>
+            <ClinicReportPrintPage />
           </ProtectedRoute>
         }
       />

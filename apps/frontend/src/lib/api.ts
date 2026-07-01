@@ -9,6 +9,8 @@ export const api = axios.create({
   },
 });
 
+export type AiResponseLanguage = "auto" | "bn-BD" | "en-US" | "hi-IN";
+
 export type AuthUser = {
   id: number;
   name: string;
@@ -43,6 +45,7 @@ export type DashboardOverview = {
     today_visits: number;
     pending_followups: number;
     prescriptions_saved: number;
+    unread_notifications: number;
   };
   clinical_workflow: Array<{
     title: string;
@@ -92,6 +95,416 @@ export async function logout() {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const response = await api.get("/api/dashboard/overview");
   return response.data.data;
+}
+
+export type ClinicalDashboardPeriod =
+  | "7d"
+  | "30d"
+  | "90d"
+  | "this_month"
+  | "last_month"
+  | "this_year"
+  | "custom";
+
+export type DashboardSeriesPoint = {
+  date: string;
+  total: number;
+};
+
+export type DashboardProgressPoint = {
+  date: string;
+  average_score: number;
+  total: number;
+};
+
+export type DashboardFollowUpItem = {
+  prescription_id: number;
+  patient_id: number;
+  patient_name: string | null;
+  patient_phone: string | null;
+  visit_id: number;
+  chief_complaint: string | null;
+  follow_up_date: string | null;
+  remedy_name: string | null;
+  potency: string | null;
+};
+
+export type DashboardOutcomeCase = {
+  id: number;
+  patient_id: number;
+  patient_name: string | null;
+  visit_id: number;
+  visit_date: string | null;
+  chief_complaint: string | null;
+  response_level: string | null;
+  progress_score: number;
+  summary: string | null;
+  red_flags: string[];
+};
+
+export type DashboardRedFlag = {
+  id: number;
+  patient_id: number;
+  patient_name: string | null;
+  patient_phone: string | null;
+  visit_id: number;
+  visit_date: string | null;
+  chief_complaint: string | null;
+  red_flags: string[];
+  summary: string | null;
+};
+
+export type DashboardAlert = {
+  type: string;
+  severity: string;
+  patient_id: number | null;
+  patient_name: string | null;
+  visit_id: number | null;
+  title: string;
+  description: string | null;
+  created_at: string | null;
+};
+
+export type ClinicalDashboard = {
+  filters: {
+    date_from: string;
+    date_to: string;
+    doctor_id: number | null;
+    period: ClinicalDashboardPeriod;
+  };
+  kpis: {
+    new_patients: number;
+    visits: number;
+    follow_up_visits: number;
+    prescriptions: number;
+    outcome_analyses: number;
+    average_progress_score: number;
+    patient_handouts: number;
+  };
+  clinic_activity: {
+    visits_by_day: DashboardSeriesPoint[];
+    new_patients_by_day: DashboardSeriesPoint[];
+    visit_type_distribution: Array<{
+      visit_type: string;
+      total: number;
+    }>;
+  };
+  outcomes: {
+    response_level_distribution: Array<{
+      response_level: string;
+      total: number;
+    }>;
+    progress_score_trend: DashboardProgressPoint[];
+    latest_outcome_cases: DashboardOutcomeCase[];
+  };
+  remedies: {
+    top_prescribed_remedies: Array<{
+      remedy: string;
+      total: number;
+    }>;
+    top_potencies: Array<{
+      potency: string;
+      total: number;
+    }>;
+  };
+  safety: {
+    prescription_review_status: Array<{
+      review_status: string;
+      total: number;
+    }>;
+    red_flag_count: number;
+    recent_red_flags: DashboardRedFlag[];
+  };
+  finance: {
+    total_amount: number;
+    paid_amount: number;
+    due_amount: number;
+    unpaid_count: number;
+    partial_count: number;
+    paid_count: number;
+  };
+  follow_ups: {
+    due_today: DashboardFollowUpItem[];
+    due_next_7_days: DashboardFollowUpItem[];
+    overdue: DashboardFollowUpItem[];
+  };
+  recent_alerts: DashboardAlert[];
+  generated_at: string;
+};
+
+export async function getClinicalDashboard(input?: {
+  period?: ClinicalDashboardPeriod;
+  date_from?: string | null;
+  date_to?: string | null;
+  doctor_id?: number | null;
+}): Promise<ClinicalDashboard> {
+  const response = await api.get("/api/clinical-dashboard", {
+    params: {
+      period: input?.period ?? "30d",
+      date_from: input?.date_from ?? null,
+      date_to: input?.date_to ?? null,
+      doctor_id: input?.doctor_id ?? null,
+    },
+  });
+
+  return response.data.data;
+}
+
+export type ClinicReportSection = {
+  id: number;
+  clinic_report_run_id: number;
+  section_key: string;
+  category: string;
+  sort_order: number;
+  title: string;
+  content: string;
+  metrics: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicReportRun = {
+  id: number;
+  created_by_id: number;
+  scope_doctor_id: number | null;
+  report_type: "monthly" | "custom_period" | "yearly";
+  status: string;
+  response_language: AiResponseLanguage | string;
+  resolved_language: string | null;
+  period_start: string;
+  period_end: string;
+  title: string | null;
+  executive_summary: string | null;
+  clinical_activity_summary: string | null;
+  outcome_summary: string | null;
+  remedy_summary: string | null;
+  safety_summary: string | null;
+  finance_summary: string | null;
+  follow_up_summary: string | null;
+  key_metrics: Record<string, unknown>;
+  dashboard_snapshot: Record<string, unknown>;
+  recommendations: string[];
+  limitations: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  exported_at: string | null;
+  printed_at: string | null;
+  metadata: Record<string, unknown>;
+  sections: ClinicReportSection[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicReportResponse = {
+  data: ClinicReportRun[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getClinicReports(): Promise<ClinicReportResponse> {
+  const response = await api.get("/api/clinic-reports", {
+    params: {
+      per_page: 10,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getClinicReport(
+  reportId: string | number
+): Promise<ClinicReportRun> {
+  const response = await api.get(`/api/clinic-reports/${reportId}`);
+
+  return response.data.data;
+}
+
+export async function generateClinicReport(input?: {
+  report_type?: "monthly" | "custom_period" | "yearly";
+  period?: "this_month" | "last_month" | "this_year" | "custom";
+  date_from?: string | null;
+  date_to?: string | null;
+  doctor_id?: number | null;
+  response_language?: AiResponseLanguage | string;
+  include_finance?: boolean;
+  include_safety?: boolean;
+  include_follow_ups?: boolean;
+  include_recommendations?: boolean;
+}): Promise<ClinicReportRun> {
+  const response = await api.post("/api/clinic-reports/generate", {
+    report_type: input?.report_type ?? "monthly",
+    period: input?.period ?? "last_month",
+    date_from: input?.date_from ?? null,
+    date_to: input?.date_to ?? null,
+    doctor_id: input?.doctor_id ?? null,
+    response_language: input?.response_language ?? "auto",
+    include_finance: input?.include_finance ?? true,
+    include_safety: input?.include_safety ?? true,
+    include_follow_ups: input?.include_follow_ups ?? true,
+    include_recommendations: input?.include_recommendations ?? true,
+  });
+
+  return response.data.data;
+}
+
+export function clinicReportCsvUrl(reportId: string | number): string {
+  return `${api.defaults.baseURL}/api/clinic-reports/${reportId}/export.csv`;
+}
+
+export async function markClinicReportPrinted(
+  reportId: string | number
+): Promise<ClinicReportRun> {
+  const response = await api.post(`/api/clinic-reports/${reportId}/printed`);
+
+  return response.data.data;
+}
+
+export type AdvancedSearchType =
+  | "patients"
+  | "visits"
+  | "prescriptions"
+  | "remedy_suggestions"
+  | "follow_up_analyses"
+  | "potency_guidance"
+  | "remedy_relationships"
+  | "prescription_reviews"
+  | "patient_handouts"
+  | "clinic_reports";
+
+export type AdvancedSearchResult = {
+  type: AdvancedSearchType;
+  label: string;
+  id: number;
+  patient_id: number | null;
+  patient_name: string | null;
+  visit_id: number | null;
+  title: string;
+  subtitle: string | null;
+  snippet: string | null;
+  url: string | null;
+  created_at: string | null;
+  score: number;
+  metadata: Record<string, unknown>;
+};
+
+export type AdvancedSearchResponse = {
+  data: AdvancedSearchResult[];
+  meta: {
+    query: string;
+    types: AdvancedSearchType[];
+    total: number;
+  };
+};
+
+export async function advancedSearch(input: {
+  q: string;
+  types?: AdvancedSearchType[];
+  patient_id?: number | null;
+  visit_id?: number | null;
+  date_from?: string | null;
+  date_to?: string | null;
+  limit?: number;
+}): Promise<AdvancedSearchResponse> {
+  const response = await api.get("/api/search/advanced", {
+    params: {
+      q: input.q,
+      types: input.types,
+      patient_id: input.patient_id ?? null,
+      visit_id: input.visit_id ?? null,
+      date_from: input.date_from ?? null,
+      date_to: input.date_to ?? null,
+      limit: input.limit ?? 50,
+    },
+  });
+
+  return response.data;
+}
+
+export type AiTask = {
+  id: number;
+  user_id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  type: "structure_case" | "compare_materia_medica" | string;
+  status: "queued" | "running" | "completed" | "failed" | string;
+  title: string;
+  message: string | null;
+  progress: number;
+  payload: Record<string, unknown>;
+  result: Record<string, unknown>;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type UserNotification = {
+  id: number;
+  user_id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  ai_task_id: number | null;
+  type: "info" | "success" | "warning" | "error" | string;
+  category: string;
+  title: string;
+  message: string | null;
+  action_url: string | null;
+  metadata: Record<string, unknown>;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string | null;
+};
+
+export type NotificationResponse = {
+  data: UserNotification[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getAiTask(taskId: string | number): Promise<AiTask> {
+  const response = await api.get(`/api/ai-tasks/${taskId}`);
+  return response.data.data;
+}
+
+export async function getNotifications(params?: {
+  unread_only?: boolean;
+}): Promise<NotificationResponse> {
+  const response = await api.get("/api/notifications", {
+    params: {
+      per_page: 10,
+      ...params,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const response = await api.get("/api/notifications/unread-count");
+  return response.data.data.unread_count;
+}
+
+export async function markNotificationAsRead(
+  notificationId: string | number
+): Promise<UserNotification> {
+  const response = await api.patch(`/api/notifications/${notificationId}/read`);
+  return response.data.data;
+}
+
+export async function markAllNotificationsAsRead() {
+  const response = await api.post("/api/notifications/read-all");
+  return response.data;
 }
 
 export type ClinicSetting = {
@@ -582,12 +995,247 @@ export async function structurePatientVisit(
   return response.data.data;
 }
 
+export async function queueCaseStructuring(
+  patientId: string | number,
+  visitId: string | number
+): Promise<AiTask> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/structure-case/async`
+  );
+
+  return response.data.data;
+}
+
+export type VoiceTranscript = {
+  id: number;
+
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+
+  language: string;
+  source: string;
+  status: string;
+
+  transcript_text: string;
+  segments: Array<Record<string, unknown>>;
+
+  merged_to_case_text: boolean;
+  merge_mode: "append" | "prepend" | "replace" | null;
+
+  started_at: string | null;
+  completed_at: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type VoiceTranscriptResponse = {
+  data: VoiceTranscript[];
+};
+
+export type SaveVoiceTranscriptResult = {
+  transcript: VoiceTranscript;
+  queued_ai_task_id: number | null;
+};
+
+export async function getVoiceTranscripts(
+  patientId: string | number,
+  visitId: string | number
+): Promise<VoiceTranscriptResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/voice-transcripts`,
+    {
+      params: {
+        per_page: 10,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function saveVoiceTranscript(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    language: string;
+    transcript_text: string;
+    segments?: Array<Record<string, unknown>>;
+    merge_to_case_text?: boolean;
+    merge_mode?: "append" | "prepend" | "replace";
+    started_at?: string | null;
+    completed_at?: string | null;
+  }
+): Promise<SaveVoiceTranscriptResult> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/voice-transcripts`,
+    {
+      language: input.language,
+      transcript_text: input.transcript_text,
+      segments: input.segments ?? [],
+      merge_to_case_text: input.merge_to_case_text ?? true,
+      merge_mode: input.merge_mode ?? "append",
+      started_at: input.started_at ?? null,
+      completed_at: input.completed_at ?? null,
+    }
+  );
+
+  return {
+    transcript: response.data.data,
+    queued_ai_task_id: response.data.meta?.queued_ai_task_id ?? null,
+  };
+}
+
+export type CaseQuestionMessage = {
+  id: number;
+
+  case_question_session_id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+
+  parent_message_id: number | null;
+
+  role: "assistant" | "doctor" | "system";
+  message_type: "question" | "answer" | "note";
+  status: "pending" | "answered" | "skipped" | "saved";
+
+  question_key: string | null;
+  category: string | null;
+  importance: "normal" | "important" | "red_flag";
+
+  content: string;
+
+  extracted_update: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+
+  answered_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type CaseQuestionSession = {
+  id: number;
+
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+
+  status: "active" | "completed" | "cancelled";
+  language: string;
+  mode: string;
+
+  total_questions: number;
+  answered_questions: number;
+
+  case_snapshot: Record<string, unknown>;
+  settings: Record<string, unknown>;
+
+  messages: CaseQuestionMessage[];
+
+  started_at: string | null;
+  completed_at: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type CaseQuestionSessionResponse = {
+  data: CaseQuestionSession[];
+};
+
+export async function getCaseQuestionSessions(
+  patientId: string | number,
+  visitId: string | number
+): Promise<CaseQuestionSessionResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions`,
+    {
+      params: {
+        per_page: 10,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function startCaseQuestionSession(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    language?: string;
+    response_language?: AiResponseLanguage;
+    mode?: "ai_missing_questions" | "from_existing_missing_questions";
+    max_questions?: number;
+    replace_active_session?: boolean;
+  }
+): Promise<CaseQuestionSession> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions/start`,
+    {
+      language: input.language ?? "bn-BD",
+      response_language: input.response_language ?? "auto",
+      mode: input.mode ?? "ai_missing_questions",
+      max_questions: input.max_questions ?? 10,
+      replace_active_session: input.replace_active_session ?? false,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function answerCaseQuestion(
+  patientId: string | number,
+  visitId: string | number,
+  sessionId: string | number,
+  input: {
+    question_message_id: number;
+    answer_text: string;
+    merge_to_case_text?: boolean;
+    apply_to_case_sections?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<CaseQuestionSession> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions/${sessionId}/answer`,
+    {
+      question_message_id: input.question_message_id,
+      answer_text: input.answer_text,
+      merge_to_case_text: input.merge_to_case_text ?? true,
+      apply_to_case_sections: input.apply_to_case_sections ?? true,
+      response_language: input.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function completeCaseQuestionSession(
+  patientId: string | number,
+  visitId: string | number,
+  sessionId: string | number
+): Promise<CaseQuestionSession> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/question-sessions/${sessionId}/complete`
+  );
+
+  return response.data.data;
+}
+
 export type RepertoryRubric = {
   id: number;
+  repertory_source_id: number | null;
+  external_id: number | null;
+  external_repertory_id: number | null;
   source: string;
   chapter: string | null;
   rubric_path: string;
   rubric_text: string;
+  medicine_count: number;
+  default_weight: number;
+  is_selectable: boolean;
   page: number | null;
   remedies_count?: number;
 };
@@ -846,6 +1494,483 @@ export async function compareMateriaMedica(
   return response.data.data;
 }
 
+export async function queueMateriaMedicaComparison(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    repertorization_run_id?: number | null;
+    method?: MateriaMedicaMethod | "";
+    limit?: number;
+  }
+): Promise<AiTask> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/materia-medica/compare/async`,
+    {
+      repertorization_run_id: input?.repertorization_run_id || null,
+      method: input?.method || null,
+      limit: input?.limit ?? 3,
+    }
+  );
+
+  return response.data.data;
+}
+
+export type RemedySuggestionMethod = "weighted" | "cross" | "eliminative";
+
+export type RemedySuggestionItem = {
+  id: number;
+  remedy_id: number | null;
+  remedy_code: string | null;
+  remedy_name: string;
+  rank: number;
+  confidence_score: string;
+  repertory_score: string;
+  materia_medica_score: string;
+  knowledge_score: string;
+  summary: string | null;
+  matching_points: string[];
+  differentiating_points: string[];
+  missing_questions: string[];
+  evidence_matrix: Array<{
+    rubric_path: string;
+    importance: string | null;
+    weight: number | null;
+    is_essential: boolean | null;
+    covered: boolean;
+  }>;
+  repertory_evidence: Record<string, unknown>;
+  materia_medica_evidence: Array<Record<string, unknown>>;
+  potency_considerations: Array<Record<string, unknown>>;
+  relationship_notes: Array<Record<string, unknown>>;
+  medical_safety_notes: Array<Record<string, unknown>>;
+  source_chunks: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type RemedySuggestionRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  repertorization_run_id: number | null;
+  method: RemedySuggestionMethod | null;
+  status: string;
+  limit: number;
+  case_snapshot: Record<string, unknown>;
+  selected_rubrics_snapshot: Array<Record<string, unknown>>;
+  retrieved_sources: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  safety_note: string | null;
+  error_message: string | null;
+  items: RemedySuggestionItem[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type RemedySuggestionRunResponse = {
+  data: RemedySuggestionRun[];
+};
+
+export async function getRemedySuggestionRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RemedySuggestionRunResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-suggestions`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generateRemedySuggestions(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    method?: RemedySuggestionMethod | "";
+    repertorization_run_id?: number | null;
+    limit?: number;
+    include_potency?: boolean;
+    include_relationship?: boolean;
+    include_medical_safety?: boolean;
+    include_organon?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<RemedySuggestionRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-suggestions/generate`,
+    {
+      method: input.method || null,
+      repertorization_run_id: input.repertorization_run_id || null,
+      limit: input.limit ?? 3,
+      include_potency: input.include_potency ?? true,
+      include_relationship: input.include_relationship ?? true,
+      include_medical_safety: input.include_medical_safety ?? true,
+      include_organon: input.include_organon ?? true,
+      response_language: input.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
+export type FollowUpResponseLevel =
+  | "improved"
+  | "same"
+  | "worse"
+  | "mixed"
+  | "aggravation"
+  | "new_symptoms"
+  | "unclear";
+
+export type FollowUpProgressItem = {
+  id: number;
+  follow_up_analysis_run_id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  category: string | null;
+  symptom: string;
+  change_status:
+    | "improved"
+    | "worse"
+    | "unchanged"
+    | "resolved"
+    | "new"
+    | "returned_old_symptom"
+    | string;
+  previous_intensity: number | null;
+  current_intensity: number | null;
+  change_score: string | number;
+  evidence: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type FollowUpAnalysisRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  previous_visit_id: number | null;
+  doctor_id: number;
+  prescription_id: number | null;
+  status: string;
+  response_level: FollowUpResponseLevel | null;
+  progress_score: string | number;
+  previous_case_snapshot: Record<string, unknown>;
+  current_case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  analysis_summary: string | null;
+  remedy_response_assessment: string | null;
+  improvement_points: string[];
+  worsening_points: string[];
+  unchanged_points: string[];
+  new_symptoms: string[];
+  old_symptoms_returned: string[];
+  possible_aggravation_signs: string[];
+  red_flags: string[];
+  suggested_follow_up_questions: string[];
+  doctor_review_points: string[];
+  recommended_next_steps: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  progress_items: FollowUpProgressItem[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type FollowUpAnalysisResponse = {
+  data: FollowUpAnalysisRun[];
+};
+
+export async function getFollowUpAnalyses(
+  patientId: string | number,
+  visitId: string | number
+): Promise<FollowUpAnalysisResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/follow-up-analyses`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generateFollowUpAnalysis(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    previous_visit_id?: number | null;
+    prescription_id?: number | null;
+    include_timeline_context?: boolean;
+    limit_previous_visits?: number;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<FollowUpAnalysisRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/follow-up-analyses/generate`,
+    {
+      previous_visit_id: input?.previous_visit_id ?? null,
+      prescription_id: input?.prescription_id ?? null,
+      include_timeline_context: input?.include_timeline_context ?? true,
+      limit_previous_visits: input?.limit_previous_visits ?? 3,
+      response_language: input?.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
+export type PotencyGuidanceOption = {
+  id: number;
+  potency_guidance_run_id: number;
+  potency_range: "low" | "medium" | "high" | "lm" | "wait" | "unclear" | string;
+  potency_label: string | null;
+  rank: number;
+  suitability_score: string | number;
+  rationale: string | null;
+  repetition_note: string | null;
+  caution: string | null;
+  source_chunks: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type PotencyCasePhase =
+  | "acute"
+  | "chronic"
+  | "follow_up"
+  | "constitutional"
+  | "unclear";
+
+export type PotencySensitivity = "low" | "moderate" | "high" | "unclear";
+export type PotencyVitality = "low" | "moderate" | "high" | "unclear";
+export type PotencyPathology =
+  | "functional"
+  | "structural"
+  | "advanced_pathology"
+  | "unclear";
+
+export type PotencyGuidanceRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  prescription_id: number | null;
+  remedy_id: number | null;
+  remedy_code: string | null;
+  remedy_name: string | null;
+  case_phase: PotencyCasePhase | null;
+  status: string;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  follow_up_snapshot: Record<string, unknown>;
+  retrieved_sources: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  vitality_level: PotencyVitality | null;
+  sensitivity_level: PotencySensitivity | null;
+  pathology_depth: PotencyPathology | null;
+  guidance_summary: string | null;
+  repetition_guidance: string | null;
+  wait_and_watch_guidance: string | null;
+  aggravation_guidance: string | null;
+  cautions: string[];
+  follow_up_questions: string[];
+  doctor_review_points: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  options: PotencyGuidanceOption[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PotencyGuidanceResponse = {
+  data: PotencyGuidanceRun[];
+};
+
+export async function getPotencyGuidanceRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PotencyGuidanceResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/potency-guidance`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generatePotencyGuidance(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    prescription_id?: number | null;
+    remedy_id?: number | null;
+    remedy_name?: string | null;
+    remedy_code?: string | null;
+    case_phase?: PotencyCasePhase;
+    patient_sensitivity?: PotencySensitivity;
+    vitality_level?: PotencyVitality;
+    pathology_depth?: PotencyPathology;
+    include_organon?: boolean;
+    include_philosophy?: boolean;
+    include_follow_up_context?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<PotencyGuidanceRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/potency-guidance/generate`,
+    {
+      prescription_id: input?.prescription_id ?? null,
+      remedy_id: input?.remedy_id ?? null,
+      remedy_name: input?.remedy_name ?? null,
+      remedy_code: input?.remedy_code ?? null,
+      case_phase: input?.case_phase ?? "unclear",
+      patient_sensitivity: input?.patient_sensitivity ?? "unclear",
+      vitality_level: input?.vitality_level ?? "unclear",
+      pathology_depth: input?.pathology_depth ?? "unclear",
+      include_organon: input?.include_organon ?? true,
+      include_philosophy: input?.include_philosophy ?? true,
+      include_follow_up_context: input?.include_follow_up_context ?? true,
+      response_language: input?.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
+export type RemedyRelationshipPurpose =
+  | "general"
+  | "before_prescription"
+  | "follow_up"
+  | "change_remedy"
+  | "antidote_check"
+  | "compare";
+
+export type RemedyRelationshipFinding = {
+  id: number;
+  remedy_relationship_run_id: number;
+  related_remedy_id: number | null;
+  related_remedy_code: string | null;
+  related_remedy_name: string | null;
+  relationship_type: string;
+  direction: string | null;
+  rank: number;
+  confidence_score: string | number;
+  summary: string | null;
+  clinical_note: string | null;
+  caution: string | null;
+  evidence: string[];
+  source_chunks: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+};
+
+export type RemedyRelationshipRun = {
+  id: number;
+  patient_id: number | null;
+  patient_visit_id: number | null;
+  doctor_id: number;
+  primary_remedy_id: number | null;
+  primary_remedy_code: string | null;
+  primary_remedy_name: string;
+  comparison_remedy_id: number | null;
+  comparison_remedy_code: string | null;
+  comparison_remedy_name: string | null;
+  purpose: RemedyRelationshipPurpose | string;
+  status: string;
+  response_language: AiResponseLanguage | string;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  follow_up_snapshot: Record<string, unknown>;
+  retrieved_sources: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  relationship_summary: string | null;
+  sequence_guidance: string | null;
+  antidote_guidance: string | null;
+  inimical_warning: string | null;
+  complementary_note: string | null;
+  cautions: string[];
+  doctor_review_points: string[];
+  suggested_questions: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  findings: RemedyRelationshipFinding[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type RemedyRelationshipResponse = {
+  data: RemedyRelationshipRun[];
+};
+
+export async function getRemedyRelationshipRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<RemedyRelationshipResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-relationships`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generateRemedyRelationship(
+  patientId: string | number,
+  visitId: string | number,
+  input: {
+    primary_remedy_id?: number | null;
+    primary_remedy_code?: string | null;
+    primary_remedy_name?: string | null;
+    comparison_remedy_id?: number | null;
+    comparison_remedy_code?: string | null;
+    comparison_remedy_name?: string | null;
+    purpose?: RemedyRelationshipPurpose;
+    prescription_id?: number | null;
+    include_visit_context?: boolean;
+    include_follow_up_context?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<RemedyRelationshipRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/remedy-relationships/generate`,
+    {
+      primary_remedy_id: input.primary_remedy_id ?? null,
+      primary_remedy_code: input.primary_remedy_code ?? null,
+      primary_remedy_name: input.primary_remedy_name ?? null,
+      comparison_remedy_id: input.comparison_remedy_id ?? null,
+      comparison_remedy_code: input.comparison_remedy_code ?? null,
+      comparison_remedy_name: input.comparison_remedy_name ?? null,
+      purpose: input.purpose ?? "general",
+      prescription_id: input.prescription_id ?? null,
+      include_visit_context: input.include_visit_context ?? true,
+      include_follow_up_context: input.include_follow_up_context ?? true,
+      response_language: input.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionSourceMethod =
   | "manual"
   | "weighted"
@@ -860,6 +1985,7 @@ export type PatientPrescription = {
 
   repertorization_run_id: number | null;
   repertorization_result_id: number | null;
+  remedy_id: number | null;
   source_method: PrescriptionSourceMethod | null;
 
   remedy_code: string | null;
@@ -880,6 +2006,280 @@ export type PatientPrescription = {
   created_at: string | null;
   updated_at: string | null;
 };
+
+export type PrescriptionReviewStatus =
+  | "ready"
+  | "needs_doctor_review"
+  | "safety_warning"
+  | "incomplete"
+  | "blocked"
+  | string;
+
+export type PrescriptionReviewCheckStatus =
+  | "pending"
+  | "passed"
+  | "warning"
+  | "failed"
+  | "doctor_confirmed"
+  | "doctor_overridden"
+  | string;
+
+export type PrescriptionReviewCheck = {
+  id: number;
+  prescription_review_run_id: number;
+  doctor_id: number;
+  check_key: string;
+  category: string;
+  severity: "normal" | "important" | "warning" | "critical" | string;
+  status: PrescriptionReviewCheckStatus;
+  is_required: boolean;
+  is_blocking: boolean;
+  title: string;
+  description: string | null;
+  ai_assessment: string | null;
+  doctor_note: string | null;
+  doctor_confirmed_at: string | null;
+  evidence: string[];
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PrescriptionReviewRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  prescription_id: number | null;
+  remedy_id: number | null;
+  remedy_code: string | null;
+  remedy_name: string | null;
+  potency: string | null;
+  repetition: string | null;
+  status: string;
+  review_status: PrescriptionReviewStatus;
+  safety_score: string | number;
+  response_language: AiResponseLanguage | string;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  remedy_suggestion_snapshot: Record<string, unknown>;
+  potency_guidance_snapshot: Record<string, unknown>;
+  relationship_snapshot: Record<string, unknown>;
+  follow_up_snapshot: Record<string, unknown>;
+  review_summary: string | null;
+  decision_guidance: string | null;
+  risk_summary: string | null;
+  red_flags: string[];
+  missing_information: string[];
+  doctor_review_points: string[];
+  recommended_actions: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  checks: PrescriptionReviewCheck[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PrescriptionReviewResponse = {
+  data: PrescriptionReviewRun[];
+};
+
+export async function getPrescriptionReviewRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PrescriptionReviewResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/prescription-reviews`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generatePrescriptionReview(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    prescription_id?: number | null;
+    include_remedy_suggestion?: boolean;
+    include_potency_guidance?: boolean;
+    include_relationship_guidance?: boolean;
+    include_follow_up_analysis?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<PrescriptionReviewRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/prescription-reviews/generate`,
+    {
+      prescription_id: input?.prescription_id ?? null,
+      include_remedy_suggestion: input?.include_remedy_suggestion ?? true,
+      include_potency_guidance: input?.include_potency_guidance ?? true,
+      include_relationship_guidance: input?.include_relationship_guidance ?? true,
+      include_follow_up_analysis: input?.include_follow_up_analysis ?? true,
+      response_language: input?.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function updatePrescriptionReviewCheck(
+  patientId: string | number,
+  visitId: string | number,
+  reviewId: string | number,
+  checkId: string | number,
+  input: {
+    status: "doctor_confirmed" | "doctor_overridden" | "pending";
+    doctor_note?: string | null;
+  }
+): Promise<PrescriptionReviewRun> {
+  const response = await api.patch(
+    `/api/patients/${patientId}/visits/${visitId}/prescription-reviews/${reviewId}/checks/${checkId}`,
+    {
+      status: input.status,
+      doctor_note: input.doctor_note ?? null,
+    }
+  );
+
+  return response.data.data;
+}
+
+export type PatientHandoutStatus =
+  | "draft"
+  | "reviewed"
+  | "printed"
+  | "archived"
+  | string;
+
+export type PatientHandoutSection = {
+  id: number;
+  patient_handout_run_id: number;
+  section_key: string;
+  category: "instruction" | "warning" | "follow_up" | "clinic_note" | string;
+  sort_order: number;
+  title: string;
+  content: string;
+  is_important: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PatientHandoutRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  prescription_id: number | null;
+  prescription_review_run_id: number | null;
+  status: PatientHandoutStatus;
+  handout_type: "prescription" | "follow_up" | "general_instruction" | string;
+  response_language: AiResponseLanguage | string;
+  resolved_language: AiResponseLanguage | string | null;
+  title: string | null;
+  patient_summary: string | null;
+  medicine_instruction: string | null;
+  diet_lifestyle_instruction: string | null;
+  follow_up_instruction: string | null;
+  warning_instruction: string | null;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  clinic_snapshot: Record<string, unknown>;
+  review_snapshot: Record<string, unknown>;
+  warning_signs: string[];
+  do_and_dont: string[];
+  footer_note: string | null;
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  sections: PatientHandoutSection[];
+  reviewed_at: string | null;
+  printed_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PatientHandoutResponse = {
+  data: PatientHandoutRun[];
+};
+
+export type PatientHandoutStyle = "simple" | "detailed" | "minimal";
+
+export async function getPatientHandouts(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientHandoutResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function getPatientHandout(
+  patientId: string | number,
+  visitId: string | number,
+  handoutId: string | number
+): Promise<PatientHandoutRun> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts/${handoutId}`
+  );
+
+  return response.data.data;
+}
+
+export async function generatePatientHandout(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    prescription_id?: number | null;
+    prescription_review_run_id?: number | null;
+    handout_type?: "prescription" | "follow_up" | "general_instruction";
+    response_language?: AiResponseLanguage;
+    style?: PatientHandoutStyle;
+    include_clinic_branding?: boolean;
+    include_warning_signs?: boolean;
+    include_do_and_dont?: boolean;
+  }
+): Promise<PatientHandoutRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts/generate`,
+    {
+      prescription_id: input?.prescription_id ?? null,
+      prescription_review_run_id: input?.prescription_review_run_id ?? null,
+      handout_type: input?.handout_type ?? "prescription",
+      response_language: input?.response_language ?? "auto",
+      style: input?.style ?? "simple",
+      include_clinic_branding: input?.include_clinic_branding ?? true,
+      include_warning_signs: input?.include_warning_signs ?? true,
+      include_do_and_dont: input?.include_do_and_dont ?? true,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function markPatientHandoutPrinted(
+  patientId: string | number,
+  visitId: string | number,
+  handoutId: string | number
+): Promise<PatientHandoutRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/patient-handouts/${handoutId}/printed`
+  );
+
+  return response.data.data;
+}
 
 export type PrescriptionInput = {
   repertorization_result_id: number | null;
@@ -1374,7 +2774,7 @@ export type PrintVisit = {
   case_source?: string;
   chief_complaint: string | null;
   raw_case_text?: string | null;
-  case_sections?: Record<string, string>;
+  case_sections?: Record<string, unknown>;
   missing_questions?: string[];
   red_flags?: string[];
   doctor_notes?: string | null;

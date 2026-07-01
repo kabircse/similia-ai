@@ -1,11 +1,13 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BookOpenCheck } from "lucide-react";
 import { useState } from "react";
 import {
   compareMateriaMedica,
+  queueMateriaMedicaComparison,
   type MateriaMedicaComparisonResponse,
   type MateriaMedicaMethod,
 } from "../../lib/api";
+import { AiTaskStatus } from "../ai/AiTaskStatus";
 
 type MateriaMedicaComparisonPanelProps = {
   patientId: string;
@@ -16,9 +18,11 @@ export function MateriaMedicaComparisonPanel({
   patientId,
   visitId,
 }: MateriaMedicaComparisonPanelProps) {
+  const queryClient = useQueryClient();
   const [method, setMethod] = useState<MateriaMedicaMethod>("weighted");
   const [comparison, setComparison] =
     useState<MateriaMedicaComparisonResponse | null>(null);
+  const [comparisonTaskId, setComparisonTaskId] = useState<number | null>(null);
 
   const compareMutation = useMutation({
     mutationFn: () => compareMateriaMedica(patientId, visitId, method),
@@ -26,6 +30,24 @@ export function MateriaMedicaComparisonPanel({
       setComparison(data);
     },
   });
+
+  const queueComparisonMutation = useMutation({
+    mutationFn: () =>
+      queueMateriaMedicaComparison(patientId, visitId, {
+        method,
+        limit: 3,
+      }),
+    onSuccess: async (task) => {
+      setComparisonTaskId(task.id);
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+    },
+  });
+
+  const refreshAfterComparisonTask = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+  };
 
   return (
     <section className="panel">
@@ -58,13 +80,35 @@ export function MateriaMedicaComparisonPanel({
             <BookOpenCheck size={16} />
             {compareMutation.isPending ? "Comparing..." : "Compare Remedies"}
           </button>
+
+          <button
+            className="secondary-button inline-button"
+            onClick={() => queueComparisonMutation.mutate()}
+            disabled={queueComparisonMutation.isPending}
+          >
+            <BookOpenCheck size={16} />
+            {queueComparisonMutation.isPending
+              ? "Queuing..."
+              : "Compare in Background"}
+          </button>
         </div>
       </div>
+
+      <AiTaskStatus
+        taskId={comparisonTaskId}
+        onCompleted={refreshAfterComparisonTask}
+      />
 
       {compareMutation.isError && (
         <div className="form-error">
           Unable to compare remedies. Run repertorization first and make sure
           FastAPI is running.
+        </div>
+      )}
+
+      {queueComparisonMutation.isError && (
+        <div className="form-error">
+          Unable to queue background comparison. Run repertorization first.
         </div>
       )}
 

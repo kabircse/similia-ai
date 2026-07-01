@@ -18,6 +18,7 @@ class PatientPrescriptionResource extends JsonResource
 
             'repertorization_run_id' => $this->repertorization_run_id,
             'repertorization_result_id' => $this->repertorization_result_id,
+            'remedy_id' => $this->remedy_id,
             'source_method' => $this->source_method,
 
             'remedy_code' => $this->remedy_code,

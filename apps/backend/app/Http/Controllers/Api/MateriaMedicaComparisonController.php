@@ -48,7 +48,13 @@ class MateriaMedicaComparisonController extends Controller
 
         foreach ($results as $result) {
             $retrieved = MateriaMedicaChunk::query()
-                ->where('remedy_code', $result->remedy_code)
+                ->where(function ($query) use ($result): void {
+                    $query->where('remedy_code', $result->remedy_code);
+
+                    if ($result->remedy_id ?? null) {
+                        $query->orWhere('remedy_id', $result->remedy_id);
+                    }
+                })
                 ->whereNotNull('embedding')
                 ->select('*')
                 ->selectRaw('embedding <=> ?::vector as distance', [$queryVector])
@@ -74,6 +80,7 @@ class MateriaMedicaComparisonController extends Controller
                 'remedy_name' => $chunk->remedy_name,
                 'section' => $chunk->section,
                 'content' => $chunk->content,
+                'source' => $chunk->source,
                 'source_title' => $chunk->source_title,
                 'distance' => isset($chunk->distance) ? (float) $chunk->distance : null,
             ])->values()->all(),

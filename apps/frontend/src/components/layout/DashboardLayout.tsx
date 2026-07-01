@@ -12,10 +12,12 @@ import {
   Settings,
   LogOut,
   Activity,
+  HeartPulse,
 } from "lucide-react";
 import { getMe, logout } from "../../lib/api";
 import { hasPermission } from "../../lib/permissions";
 import type { Permission } from "../../lib/api";
+import { NotificationBell } from "../notifications/NotificationBell";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -38,6 +40,24 @@ const navItems: Array<{
     path: "/patients",
     icon: Users,
     permission: "manage_patients",
+  },
+  {
+    label: "Advanced Search",
+    path: "/search",
+    icon: Search,
+    permission: "view_dashboard",
+  },
+  {
+    label: "Clinical Dashboard",
+    path: "/clinical-dashboard",
+    icon: HeartPulse,
+    permission: "view_dashboard",
+  },
+  {
+    label: "Clinic Reports",
+    path: "/clinic-reports",
+    icon: FileText,
+    permission: "view_activity_logs",
   },
   {
     label: "Case Taking",
@@ -143,6 +163,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="user-menu">
+            <NotificationBell />
+
             <div className="user-meta">
               <strong>{data?.user.name}</strong>
               <span>{data?.user.role}</span>
