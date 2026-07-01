@@ -203,6 +203,42 @@ class PrescriptionReviewResponse(BaseModel):
     safety_note: str
 
 
+class PatientHandoutRequest(BaseModel):
+    case_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    prescription_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    clinic_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    review_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    response_language: str = "auto"
+    style: str = "simple"
+    include_warning_signs: bool = True
+    include_do_and_dont: bool = True
+
+
+class PatientHandoutSectionModel(BaseModel):
+    section_key: str
+    category: str = "instruction"
+    sort_order: int = 1
+    title: str
+    content: str
+    is_important: bool = False
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class PatientHandoutResponse(BaseModel):
+    title: str
+    resolved_language: str
+    patient_summary: str
+    medicine_instruction: str
+    diet_lifestyle_instruction: str
+    follow_up_instruction: str
+    warning_instruction: str
+    warning_signs: List[str] = Field(default_factory=list)
+    do_and_dont: List[str] = Field(default_factory=list)
+    footer_note: str
+    safety_note: str
+    sections: List[PatientHandoutSectionModel] = Field(default_factory=list)
+
+
 class MissingQuestionConversationStartRequest(BaseModel):
     language: str = "bn-BD"
     response_language: str = "auto"
@@ -741,6 +777,138 @@ def _prescription_review_safety_note(language: str) -> str:
     return (
         "This is a doctor-facing prescription decision safety checklist only. "
         "AI does not finalize the prescription. The practitioner confirms the checklist and makes the final decision."
+    )
+
+
+def _patient_handout_text(payload: PatientHandoutRequest) -> str:
+    return "\n".join(
+        [
+            str(payload.case_snapshot.get("patient_name") or ""),
+            str(payload.case_snapshot.get("chief_complaint") or ""),
+            str(payload.case_snapshot.get("raw_case_text") or ""),
+            str(payload.prescription_snapshot.get("remedy_name") or ""),
+            str(payload.prescription_snapshot.get("advice") or ""),
+            str(payload.prescription_snapshot.get("food_lifestyle_note") or ""),
+        ]
+    )
+
+
+def _patient_handout_patient_name(case_snapshot: Dict[str, Any]) -> str:
+    return str(
+        case_snapshot.get("patient_name")
+        or case_snapshot.get("name")
+        or "Patient"
+    )
+
+
+def _patient_handout_safety_note(language: str) -> str:
+    if _lang_bn(language):
+        return (
+            "এই handout চিকিৎসকের দেওয়া নির্দেশনা সহজভাবে বোঝানোর জন্য। "
+            "জরুরি সমস্যা, নতুন গুরুতর লক্ষণ, বা দ্রুত অবনতি হলে দ্রুত চিকিৎসকের সাথে যোগাযোগ করুন।"
+        )
+
+    if language == "hi-IN":
+        return (
+            "यह handout doctor के निर्देशों को सरल भाषा में समझाने के लिए है। "
+            "Urgent symptoms, नए गंभीर symptoms, या तेजी से worsening हो तो doctor से तुरंत संपर्क करें."
+        )
+
+    return (
+        "This handout explains the doctor's instructions in simple language. "
+        "If urgent symptoms, new serious symptoms, or rapid worsening occur, contact the doctor promptly."
+    )
+
+
+def _patient_handout_default_warnings(language: str) -> List[str]:
+    if _lang_bn(language):
+        return [
+            "শ্বাসকষ্ট, বুক ব্যথা, অজ্ঞান হওয়া বা তীব্র দুর্বলতা",
+            "অস্বাভাবিক রক্তপাত বা দ্রুত অবনতি",
+            "নতুন গুরুতর ব্যথা, ফোলা, জ্বর বা সংক্রমণের লক্ষণ",
+            "মানসিকভাবে নিজেকে ক্ষতি করার চিন্তা",
+            "চিকিৎসকের নির্দেশনার বাইরে নিজে নিজে ওষুধ পরিবর্তন করার আগে যোগাযোগ করুন",
+        ]
+
+    if language == "hi-IN":
+        return [
+            "Breathing difficulty, chest pain, fainting, or severe weakness",
+            "Unusual bleeding or rapid worsening",
+            "New severe pain, swelling, fever, or signs of infection",
+            "Thoughts of self-harm",
+            "Contact the doctor before changing medicines on your own",
+        ]
+
+    return [
+        "Breathing difficulty, chest pain, fainting, or severe weakness",
+        "Unusual bleeding or rapid worsening",
+        "New severe pain, swelling, fever, or signs of infection",
+        "Thoughts of self-harm",
+        "Contact the doctor before changing medicines on your own",
+    ]
+
+
+def _patient_handout_do_and_dont(language: str) -> List[str]:
+    if _lang_bn(language):
+        return [
+            "চিকিৎসকের দেওয়া dose instruction ঠিকভাবে অনুসরণ করুন",
+            "নিজে নিজে repetition বাড়াবেন না",
+            "উন্নতি চলতে থাকলে চিকিৎসককে না জানিয়ে ওষুধ পুনরায় খাবেন না",
+            "নতুন লক্ষণ বা aggravation হলে নোট করে রাখুন",
+            "পরবর্তী follow-up তারিখ মেনে চলুন",
+        ]
+
+    if language == "hi-IN":
+        return [
+            "Follow the dose instruction exactly as advised",
+            "Do not increase repetition on your own",
+            "Do not repeat the medicine while improvement continues unless advised",
+            "Note any new symptom or aggravation",
+            "Attend the follow-up as advised",
+        ]
+
+    return [
+        "Follow the dose instruction exactly as advised",
+        "Do not increase repetition on your own",
+        "Do not repeat the medicine while improvement continues unless advised",
+        "Note any new symptom or aggravation",
+        "Attend the follow-up as advised",
+    ]
+
+
+def _patient_handout_warning_list(
+    payload: PatientHandoutRequest,
+    language: str,
+) -> List[str]:
+    if not payload.include_warning_signs:
+        return []
+
+    warnings = _patient_handout_default_warnings(language)
+
+    for source in [payload.case_snapshot, payload.review_snapshot]:
+        for item in source.get("red_flags") or []:
+            text = str(item).strip()
+            if text:
+                warnings.append(text)
+
+    return list(dict.fromkeys(warnings))
+
+
+def _patient_handout_section(
+    section_key: str,
+    category: str,
+    sort_order: int,
+    title: str,
+    content: str,
+    is_important: bool = False,
+) -> PatientHandoutSectionModel:
+    return PatientHandoutSectionModel(
+        section_key=section_key,
+        category=category,
+        sort_order=sort_order,
+        title=title,
+        content=content.strip(),
+        is_important=is_important,
     )
 
 
@@ -2333,6 +2501,254 @@ def compare_materia_medica(payload: MateriaMedicaCompareRequest):
             engine="local_materia_medica_rag_v1",
         )
     }
+
+
+@app.post("/patient-handout/generate", response_model=PatientHandoutResponse)
+def generate_patient_handout(
+    payload: PatientHandoutRequest,
+) -> PatientHandoutResponse:
+    language = resolve_response_language(
+        payload.response_language,
+        _patient_handout_text(payload),
+    )
+
+    prescription = payload.prescription_snapshot
+    clinic = payload.clinic_snapshot
+
+    patient_name = _patient_handout_patient_name(payload.case_snapshot)
+    remedy_name = str(prescription.get("remedy_name") or "medicine")
+    potency = str(prescription.get("potency") or "").strip()
+    repetition = str(prescription.get("repetition") or "").strip()
+    dose_instruction = str(prescription.get("dose_instruction") or "").strip()
+    advice = str(prescription.get("advice") or "").strip()
+    food_lifestyle_note = str(prescription.get("food_lifestyle_note") or "").strip()
+    follow_up_date = str(prescription.get("follow_up_date") or "").strip()
+    clinic_name = str(
+        clinic.get("clinic_name")
+        or clinic.get("name")
+        or "Clinic"
+    )
+    doctor_name = str(clinic.get("doctor_name") or "").strip()
+
+    warning_signs = _patient_handout_warning_list(payload, language)
+    do_and_dont = (
+        _patient_handout_do_and_dont(language)
+        if payload.include_do_and_dont
+        else []
+    )
+    style = (payload.style or "simple").lower()
+
+    if _lang_bn(language):
+        title = "রোগীর জন্য চিকিৎসা নির্দেশনা"
+        patient_summary = (
+            f"{patient_name} এর জন্য চিকিৎসকের দেওয়া নির্দেশনা নিচে সহজ ভাষায় লেখা হলো। "
+            "অনুগ্রহ করে নির্দেশনাগুলো ভালোভাবে অনুসরণ করুন।"
+        )
+        medicine_instruction = (
+            f"ওষুধ: {remedy_name}"
+            + (f" {potency}" if potency else "")
+            + (f"\nRepetition: {repetition}" if repetition else "")
+            + (f"\nDose instruction: {dose_instruction}" if dose_instruction else "")
+        )
+        if medicine_instruction.strip() == "ওষুধ: medicine":
+            medicine_instruction = "চিকিৎসক যেভাবে বলেছেন, ওষুধ ঠিক সেভাবেই নিন।"
+
+        diet_instruction = (
+            food_lifestyle_note
+            or advice
+            or "খাবার, ঘুম, পানি এবং দৈনন্দিন অভ্যাস সম্পর্কে চিকিৎসকের দেওয়া সাধারণ নির্দেশনা মেনে চলুন।"
+        )
+        follow_up_instruction = (
+            f"পরবর্তী follow-up: {follow_up_date}."
+            if follow_up_date
+            else "চিকিৎসকের পরামর্শ অনুযায়ী follow-up করুন।"
+        )
+        warning_instruction = (
+            "উপরের warning signs এর কোনোটি দেখা দিলে বা দ্রুত অবনতি হলে চিকিৎসকের সাথে যোগাযোগ করুন।"
+        )
+        footer_note = str(
+            clinic.get("prescription_footer")
+            or f"{clinic_name} থেকে দেওয়া doctor-approved patient instruction."
+        )
+        section_labels = {
+            "summary": "সারাংশ",
+            "medicine": "ওষুধের নির্দেশনা",
+            "what_to_expect": "কী আশা করবেন",
+            "diet_lifestyle": "খাবার ও জীবনযাপন",
+            "follow_up": "Follow-up",
+            "warning": "কখন যোগাযোগ করবেন",
+        }
+        expect_instruction = (
+            "উন্নতি, নতুন লক্ষণ, বা aggravation হলে তা লিখে রাখুন এবং follow-up এ চিকিৎসককে জানান।"
+        )
+    elif language == "hi-IN":
+        title = "Patient Treatment Instructions"
+        patient_summary = (
+            f"{patient_name} के लिए doctor के निर्देश सरल भाषा में नीचे दिए गए हैं. "
+            "कृपया इन्हें ध्यान से follow करें."
+        )
+        medicine_instruction = (
+            f"Medicine: {remedy_name}"
+            + (f" {potency}" if potency else "")
+            + (f"\nRepetition: {repetition}" if repetition else "")
+            + (f"\nDose instruction: {dose_instruction}" if dose_instruction else "")
+        )
+        diet_instruction = (
+            food_lifestyle_note
+            or advice
+            or "Follow the general diet, sleep, water, and daily routine advice given by the doctor."
+        )
+        follow_up_instruction = (
+            f"Next follow-up: {follow_up_date}."
+            if follow_up_date
+            else "Attend follow-up as advised by the doctor."
+        )
+        warning_instruction = (
+            "If any warning sign appears, or if symptoms worsen quickly, contact the doctor promptly."
+        )
+        footer_note = str(
+            clinic.get("prescription_footer")
+            or f"Doctor-approved patient instruction from {clinic_name}."
+        )
+        section_labels = {
+            "summary": "Summary",
+            "medicine": "Medicine Instruction",
+            "what_to_expect": "What to Expect",
+            "diet_lifestyle": "Diet and Lifestyle",
+            "follow_up": "Follow-up",
+            "warning": "When to Contact the Doctor",
+        }
+        expect_instruction = (
+            "Note improvement, new symptoms, or aggravation and share them with the doctor at follow-up."
+        )
+    else:
+        title = "Patient Treatment Instructions"
+        patient_summary = (
+            f"These are the doctor's instructions for {patient_name}, written in simple patient-friendly language. "
+            "Please follow them carefully."
+        )
+        medicine_instruction = (
+            f"Medicine: {remedy_name}"
+            + (f" {potency}" if potency else "")
+            + (f"\nRepetition: {repetition}" if repetition else "")
+            + (f"\nDose instruction: {dose_instruction}" if dose_instruction else "")
+        )
+        if medicine_instruction.strip() == "Medicine: medicine":
+            medicine_instruction = "Take the medicine exactly as explained by the doctor."
+
+        diet_instruction = (
+            food_lifestyle_note
+            or advice
+            or "Follow the general diet, sleep, water, and daily routine advice given by the doctor."
+        )
+        follow_up_instruction = (
+            f"Next follow-up: {follow_up_date}."
+            if follow_up_date
+            else "Attend follow-up as advised by the doctor."
+        )
+        warning_instruction = (
+            "If any warning sign appears, or if symptoms worsen quickly, contact the doctor promptly."
+        )
+        footer_note = str(
+            clinic.get("prescription_footer")
+            or f"Doctor-approved patient instruction from {clinic_name}."
+        )
+        section_labels = {
+            "summary": "Summary",
+            "medicine": "Medicine Instruction",
+            "what_to_expect": "What to Expect",
+            "diet_lifestyle": "Diet and Lifestyle",
+            "follow_up": "Follow-up",
+            "warning": "When to Contact the Doctor",
+        }
+        expect_instruction = (
+            "Note improvement, new symptoms, or aggravation and share them with the doctor at follow-up."
+        )
+
+    if doctor_name:
+        footer_note = f"{footer_note}\nDoctor: {doctor_name}"
+
+    sections: List[PatientHandoutSectionModel] = []
+
+    if style != "minimal":
+        sections.append(
+            _patient_handout_section(
+                section_key="summary",
+                category="instruction",
+                sort_order=1,
+                title=section_labels["summary"],
+                content=patient_summary,
+            )
+        )
+
+    sections.append(
+        _patient_handout_section(
+            section_key="medicine",
+            category="instruction",
+            sort_order=2,
+            title=section_labels["medicine"],
+            content=medicine_instruction,
+            is_important=True,
+        )
+    )
+
+    if style == "detailed":
+        sections.append(
+            _patient_handout_section(
+                section_key="what_to_expect",
+                category="instruction",
+                sort_order=3,
+                title=section_labels["what_to_expect"],
+                content=expect_instruction,
+            )
+        )
+
+    if style != "minimal":
+        sections.append(
+            _patient_handout_section(
+                section_key="diet_lifestyle",
+                category="instruction",
+                sort_order=4,
+                title=section_labels["diet_lifestyle"],
+                content=diet_instruction,
+            )
+        )
+
+    sections.extend(
+        [
+            _patient_handout_section(
+                section_key="follow_up",
+                category="follow_up",
+                sort_order=5,
+                title=section_labels["follow_up"],
+                content=follow_up_instruction,
+                is_important=True,
+            ),
+            _patient_handout_section(
+                section_key="warning",
+                category="warning",
+                sort_order=6,
+                title=section_labels["warning"],
+                content=warning_instruction,
+                is_important=True,
+            ),
+        ]
+    )
+
+    return PatientHandoutResponse(
+        title=title,
+        resolved_language=language,
+        patient_summary=patient_summary,
+        medicine_instruction=medicine_instruction,
+        diet_lifestyle_instruction=diet_instruction,
+        follow_up_instruction=follow_up_instruction,
+        warning_instruction=warning_instruction,
+        warning_signs=warning_signs,
+        do_and_dont=do_and_dont,
+        footer_note=footer_note,
+        safety_note=_patient_handout_safety_note(language),
+        sections=sections,
+    )
 
 
 @app.post("/prescription/review", response_model=PrescriptionReviewResponse)

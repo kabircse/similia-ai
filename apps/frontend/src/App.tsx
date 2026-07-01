@@ -11,6 +11,7 @@ import { VisitDetailPage } from "./pages/VisitDetailPage";
 import { ActivityLogPage } from "./pages/ActivityLogPage";
 import { ClinicSettingsPage } from "./pages/ClinicSettingsPage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
+import { PatientHandoutPrintPage } from "./pages/print/PatientHandoutPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
@@ -147,6 +148,15 @@ function App() {
         element={
           <ProtectedRoute>
             <PrescriptionPrintPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patients/:patientId/visits/:visitId/handouts/:handoutId/print"
+        element={
+          <ProtectedRoute>
+            <PatientHandoutPrintPage />
           </ProtectedRoute>
         }
       />
