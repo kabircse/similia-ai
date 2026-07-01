@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import {
   Archive,
   CheckCircle2,
@@ -53,6 +54,27 @@ function formatLabel(value: string | null | undefined) {
   }
 
   return value.replaceAll("_", " ");
+}
+
+function mutationErrorMessage(error: unknown, fallback: string) {
+  if (!isAxiosError(error)) {
+    return fallback;
+  }
+
+  const data = error.response?.data as
+    | { message?: string; errors?: Record<string, string[]> }
+    | undefined;
+  const firstValidationError = data?.errors
+    ? Object.values(data.errors).flat()[0]
+    : null;
+
+  return (
+    firstValidationError ||
+    data?.message ||
+    (error.response?.status
+      ? `Request failed with status ${error.response.status}.`
+      : fallback)
+  );
 }
 
 function invalidatePortalQueries(
@@ -453,7 +475,10 @@ export function PatientPortalPanel({
 
         {createMutation.isError && (
           <div className="form-error">
-            Unable to create portal invitation. Please check the visit access.
+            {mutationErrorMessage(
+              createMutation.error,
+              "Unable to create portal invitation."
+            )}
           </div>
         )}
 
