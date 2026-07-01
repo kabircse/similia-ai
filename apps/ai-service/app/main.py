@@ -1,7 +1,12 @@
+import json
+import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+
+from app.services.ai_providers import generate_with_provider_fallback, get_ai_provider
+from app.services.ai_providers.factory import provider_timeout_seconds
 
 app = FastAPI(title="Similia AI Service")
 
@@ -124,6 +129,9 @@ class RemedySuggestResponse(BaseModel):
     safety_note: str
     suggestions: List[RemedySuggestItem]
     engine: str
+    provider_used: str = "deterministic"
+    fallback_used: bool = False
+    failed_provider: Optional[str] = None
 
 
 class RemedyRelationshipRequest(BaseModel):
@@ -403,6 +411,49 @@ class PotencyGuidanceResponse(BaseModel):
     options: List[PotencyGuidanceOptionModel] = Field(default_factory=list)
 
     safety_note: str
+
+
+def _provider_metadata_for_endpoint(
+    *,
+    endpoint: str,
+    task: str,
+    counts: Dict[str, Any],
+) -> Dict[str, Any]:
+    provider_result = generate_with_provider_fallback(
+        task=task,
+        system_prompt=(
+            "You are reporting provider metadata for a deterministic clinical "
+            "decision-support endpoint. Return compact JSON."
+        ),
+        user_prompt=json.dumps(
+            {
+                "endpoint": endpoint,
+                "counts": counts,
+            },
+            ensure_ascii=False,
+            default=str,
+        ),
+        schema_hint={
+            "provider": "string",
+            "task": "string",
+            "content": "string",
+            "metadata": "object",
+        },
+        metadata={
+            "endpoint": endpoint,
+            "patient_data_sent": False,
+        },
+    )
+
+    return {
+        "provider_used": str(
+            provider_result.get("provider_used")
+            or provider_result.get("provider")
+            or "deterministic"
+        ),
+        "fallback_used": bool(provider_result.get("fallback_used", False)),
+        "failed_provider": provider_result.get("failed_provider"),
+    }
 
 
 def append_text(current: str, value: str) -> str:
@@ -1991,6 +2042,21 @@ def structure_case(payload: CaseStructureRequest) -> CaseStructureData:
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "ai-service"}
+
+
+@app.get("/ai/provider")
+def ai_provider_status() -> Dict[str, Any]:
+    provider = get_ai_provider()
+
+    return {
+        "provider": provider.name,
+        "fallback_provider": os.getenv("AI_PROVIDER_FALLBACK", "deterministic"),
+        "timeout_seconds": provider_timeout_seconds(),
+        "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.1")
+        if provider.name == "ollama"
+        else None,
+        "openai_configured": bool(os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_MODEL")),
+    }
 
 
 @app.post("/case/structure")
@@ -3812,8 +3878,23 @@ def remedy_suggest(payload: RemedySuggestRequest) -> RemedySuggestResponse:
             else " Red flags পাওয়া গেছে: " + "; ".join([str(flag) for flag in red_flags[:5]])
         )
 
+    provider_metadata = _provider_metadata_for_endpoint(
+        endpoint="/remedy/suggest",
+        task="remedy_suggestion_metadata",
+        counts={
+            "candidate_count": len(payload.candidates),
+            "selected_rubric_count": len(selected_rubrics),
+            "knowledge_chunk_count": len(knowledge_chunks),
+            "red_flag_count": len(red_flags),
+            "missing_question_count": len(missing_questions),
+        },
+    )
+
     return RemedySuggestResponse(
         safety_note=safety_note,
         suggestions=suggestions,
         engine="local_remedy_suggestion_rag_v1",
+        provider_used=provider_metadata["provider_used"],
+        fallback_used=provider_metadata["fallback_used"],
+        failed_provider=provider_metadata["failed_provider"],
     )
