@@ -22,6 +22,7 @@ import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
 import { FollowUpAnalysisPanel } from "../components/follow-ups/FollowUpAnalysisPanel";
+import { PotencyGuidancePanel } from "../components/potency/PotencyGuidancePanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -258,6 +259,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <PrescriptionPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <PotencyGuidancePanel patientId={patientId} visitId={visitId} />
       )}
 
       {patientId && visitId && (
