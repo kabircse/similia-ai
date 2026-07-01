@@ -8,10 +8,13 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MateriaMedicaComparisonController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientFeeController;
+use App\Http\Controllers\Api\PatientFollowUpSubmissionController;
+use App\Http\Controllers\Api\PatientPortalInvitationController;
 use App\Http\Controllers\Api\PatientPrescriptionController;
 use App\Http\Controllers\Api\PatientTimelineController;
 use App\Http\Controllers\Api\PatientVisitAiController;
 use App\Http\Controllers\Api\PatientVisitController;
+use App\Http\Controllers\Api\PublicPatientPortalController;
 use App\Http\Controllers\Api\RepertorizationController;
 use App\Http\Controllers\Api\RepertoryRubricController;
 use App\Http\Controllers\Api\VisitPrintController;
@@ -25,6 +28,17 @@ Route::get('/health', function () {
 });
 
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get(
+        '/patient-portal/follow-up/{publicId}/{secret}',
+        [PublicPatientPortalController::class, 'show']
+    );
+    Route::post(
+        '/patient-portal/follow-up/{publicId}/{secret}',
+        [PublicPatientPortalController::class, 'submit']
+    );
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -41,6 +55,38 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('patients', PatientController::class);
     Route::get('/patients/{patient}/timeline', [PatientTimelineController::class, 'index']);
     Route::apiResource('patients.visits', PatientVisitController::class);
+
+    Route::middleware('permission:manage_visits')->group(function () {
+        Route::get(
+            '/patients/{patient}/visits/{visit}/portal-invitations',
+            [PatientPortalInvitationController::class, 'index']
+        );
+        Route::post(
+            '/patients/{patient}/visits/{visit}/portal-invitations',
+            [PatientPortalInvitationController::class, 'store']
+        );
+        Route::post(
+            '/patients/{patient}/visits/{visit}/portal-invitations/{invitation}/revoke',
+            [PatientPortalInvitationController::class, 'revoke']
+        );
+        Route::get(
+            '/patients/{patient}/visits/{visit}/portal-submissions',
+            [PatientFollowUpSubmissionController::class, 'index']
+        );
+        Route::get(
+            '/patients/{patient}/visits/{visit}/portal-submissions/{submission}',
+            [PatientFollowUpSubmissionController::class, 'show']
+        );
+        Route::patch(
+            '/patients/{patient}/visits/{visit}/portal-submissions/{submission}/review',
+            [PatientFollowUpSubmissionController::class, 'review']
+        );
+        Route::post(
+            '/patients/{patient}/visits/{visit}/portal-submissions/{submission}/convert-to-visit',
+            [PatientFollowUpSubmissionController::class, 'convertToVisit']
+        );
+    });
+
     Route::post(
         '/patients/{patient}/visits/{visit}/structure-case',
         [PatientVisitAiController::class, 'structure']

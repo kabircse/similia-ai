@@ -365,10 +365,10 @@ export type PatientVisit = {
   visit_date: string;
   visit_type: "initial" | "follow_up";
   status: "draft" | "completed";
-  case_source: "manual" | "raw" | "mixed";
+  case_source: "manual" | "raw" | "mixed" | "patient_portal";
   chief_complaint: string | null;
   raw_case_text: string | null;
-  case_sections: Partial<CaseSections>;
+  case_sections: Partial<CaseSections> & Record<string, unknown>;
   missing_questions: string[];
   red_flags: string[];
   doctor_notes: string | null;
@@ -381,7 +381,7 @@ export type VisitInput = {
   visit_date: string;
   visit_type: "initial" | "follow_up";
   status: "draft" | "completed";
-  case_source: "manual" | "raw" | "mixed";
+  case_source: "manual" | "raw" | "mixed" | "patient_portal";
   chief_complaint: string;
   raw_case_text: string;
   case_sections: CaseSections;
@@ -943,6 +943,299 @@ export async function deleteVisitPrescription(
   );
 
   return response.data;
+}
+
+export type PortalResponseLanguage =
+  | "auto"
+  | "en-US"
+  | "bn-BD"
+  | "hi-IN"
+  | "ur-PK";
+
+export type PatientPortalInvitation = {
+  id: number;
+  public_id: string;
+  patient_id: number;
+  patient_visit_id: number | null;
+  doctor_id: number;
+  prescription_id: number | null;
+  purpose: "follow_up_form" | "post_prescription_check" | "general_update";
+  status: "active" | "opened" | "submitted" | "expired" | "revoked";
+  response_language: PortalResponseLanguage;
+  resolved_language: string | null;
+  max_submissions: number;
+  submission_count: number;
+  opened_count: number;
+  message_to_patient: string | null;
+  portal_url: string | null;
+  expires_at: string | null;
+  opened_at: string | null;
+  submitted_at: string | null;
+  revoked_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PatientPortalInvitationInput = {
+  prescription_id?: number | null;
+  purpose?: PatientPortalInvitation["purpose"];
+  expires_in_days?: number;
+  max_submissions?: number;
+  response_language?: PortalResponseLanguage;
+  message_to_patient?: string;
+};
+
+export type PatientPortalInvitationListResponse = {
+  data: PatientPortalInvitation[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export type PatientFollowUpSubmission = {
+  id: number;
+  patient_portal_invitation_id: number;
+  patient_id: number;
+  source_patient_visit_id: number | null;
+  converted_patient_visit_id: number | null;
+  doctor_id: number;
+  status: "new" | "reviewed" | "converted_to_visit" | "archived";
+  response_language: PortalResponseLanguage;
+  resolved_language: string | null;
+  overall_change: "improved" | "worse" | "same" | "mixed" | "unsure";
+  medicine_taken: boolean | null;
+  main_changes: string | null;
+  current_symptoms: string | null;
+  new_symptoms: string | null;
+  aggravation_notes: string | null;
+  other_medicines: string | null;
+  general_notes: string | null;
+  red_flag_notes: string | null;
+  patient_questions: string | null;
+  general_energy: string | null;
+  sleep: string | null;
+  appetite: string | null;
+  mood: string | null;
+  preferred_contact_time: string | null;
+  answers: Record<string, unknown>;
+  detected_red_flags: string[];
+  doctor_note: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  converted_at: string | null;
+  metadata: Record<string, unknown>;
+  patient?: {
+    id: number;
+    name: string;
+    age_years: number | null;
+    gender: string | null;
+    phone: string | null;
+  };
+  source_visit?: {
+    id: number;
+    visit_date: string | null;
+    visit_type: string;
+    chief_complaint: string | null;
+  } | null;
+  converted_visit?: {
+    id: number;
+    visit_date: string | null;
+    visit_type: string;
+    chief_complaint: string | null;
+  } | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PatientFollowUpSubmissionListResponse = {
+  data: PatientFollowUpSubmission[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export type PublicFollowUpInvitation = {
+  public_id: string;
+  purpose: string;
+  status: string;
+  response_language: PortalResponseLanguage;
+  resolved_language: string | null;
+  message_to_patient: string | null;
+  expires_at: string | null;
+  patient: {
+    name: string;
+    age_years: number | null;
+    gender: string | null;
+  };
+  visit: {
+    id: number;
+    visit_date: string | null;
+    chief_complaint: string | null;
+  } | null;
+  prescription: {
+    remedy_name: string;
+    potency: string;
+    repetition: string | null;
+    follow_up_date: string | null;
+  } | null;
+};
+
+export type PublicFollowUpSubmissionInput = {
+  overall_change: PatientFollowUpSubmission["overall_change"];
+  medicine_taken: boolean | null;
+  main_changes: string;
+  current_symptoms: string;
+  new_symptoms: string;
+  aggravation_notes: string;
+  other_medicines: string;
+  general_notes: string;
+  red_flag_notes: string;
+  patient_questions: string;
+  general_energy: string;
+  sleep: string;
+  appetite: string;
+  mood: string;
+  preferred_contact_time: string;
+  consent_to_submit: boolean;
+};
+
+function normalizePortalInvitationInput(input: PatientPortalInvitationInput = {}) {
+  return {
+    prescription_id: input.prescription_id ?? null,
+    purpose: input.purpose ?? "follow_up_form",
+    expires_in_days: input.expires_in_days ?? 7,
+    max_submissions: input.max_submissions ?? 1,
+    response_language: input.response_language ?? "auto",
+    message_to_patient: input.message_to_patient
+      ? nullableString(input.message_to_patient)
+      : null,
+  };
+}
+
+function normalizePublicFollowUpInput(input: PublicFollowUpSubmissionInput) {
+  return {
+    ...input,
+    main_changes: nullableString(input.main_changes),
+    current_symptoms: nullableString(input.current_symptoms),
+    new_symptoms: nullableString(input.new_symptoms),
+    aggravation_notes: nullableString(input.aggravation_notes),
+    other_medicines: nullableString(input.other_medicines),
+    general_notes: nullableString(input.general_notes),
+    red_flag_notes: nullableString(input.red_flag_notes),
+    patient_questions: nullableString(input.patient_questions),
+    general_energy: nullableString(input.general_energy),
+    sleep: nullableString(input.sleep),
+    appetite: nullableString(input.appetite),
+    mood: nullableString(input.mood),
+    preferred_contact_time: nullableString(input.preferred_contact_time),
+  };
+}
+
+export async function getPatientPortalInvitations(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientPortalInvitationListResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/portal-invitations`
+  );
+
+  return response.data;
+}
+
+export async function createPatientPortalInvitation(
+  patientId: string | number,
+  visitId: string | number,
+  input?: PatientPortalInvitationInput
+): Promise<PatientPortalInvitation> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/portal-invitations`,
+    normalizePortalInvitationInput(input)
+  );
+
+  return response.data.data;
+}
+
+export async function revokePatientPortalInvitation(
+  patientId: string | number,
+  visitId: string | number,
+  invitationId: string | number
+): Promise<PatientPortalInvitation> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/portal-invitations/${invitationId}/revoke`
+  );
+
+  return response.data.data;
+}
+
+export async function getPatientFollowUpSubmissions(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PatientFollowUpSubmissionListResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/portal-submissions`
+  );
+
+  return response.data;
+}
+
+export async function reviewPatientFollowUpSubmission(
+  patientId: string | number,
+  visitId: string | number,
+  submissionId: string | number,
+  input: { status: "reviewed" | "archived"; doctor_note?: string }
+): Promise<PatientFollowUpSubmission> {
+  const response = await api.patch(
+    `/api/patients/${patientId}/visits/${visitId}/portal-submissions/${submissionId}/review`,
+    {
+      status: input.status,
+      doctor_note: input.doctor_note ? nullableString(input.doctor_note) : null,
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function convertPatientFollowUpSubmissionToVisit(
+  patientId: string | number,
+  visitId: string | number,
+  submissionId: string | number
+): Promise<PatientFollowUpSubmission> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/portal-submissions/${submissionId}/convert-to-visit`
+  );
+
+  return response.data.data;
+}
+
+export async function getPublicFollowUpInvitation(
+  publicId: string,
+  secret: string
+): Promise<PublicFollowUpInvitation> {
+  const response = await api.get(
+    `/api/patient-portal/follow-up/${publicId}/${secret}`
+  );
+
+  return response.data.data;
+}
+
+export async function submitPublicFollowUpForm(
+  publicId: string,
+  secret: string,
+  input: PublicFollowUpSubmissionInput
+): Promise<PatientFollowUpSubmission> {
+  const response = await api.post(
+    `/api/patient-portal/follow-up/${publicId}/${secret}`,
+    normalizePublicFollowUpInput(input)
+  );
+
+  return response.data.data;
 }
 
 export type PaymentMethod =

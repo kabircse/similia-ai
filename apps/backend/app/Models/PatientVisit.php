@@ -66,4 +66,14 @@ class PatientVisit extends Model
     {
         return $this->hasOne(PatientFee::class);
     }
+
+    public function portalInvitations(): HasMany
+    {
+        return $this->hasMany(PatientPortalInvitation::class);
+    }
+
+    public function portalFollowUpSubmissions(): HasMany
+    {
+        return $this->hasMany(PatientFollowUpSubmission::class, 'source_patient_visit_id');
+    }
 }

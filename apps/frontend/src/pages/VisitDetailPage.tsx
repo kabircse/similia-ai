@@ -14,6 +14,33 @@ import { EliminativeRepertorizationPanel } from "../components/repertorization/E
 import { MateriaMedicaComparisonPanel } from "../components/materia-medica/MateriaMedicaComparisonPanel";
 import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
+import { PatientPortalPanel } from "../components/patient-portal/PatientPortalPanel";
+
+function renderCaseSectionValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => renderCaseSectionValue(item)).join("\n");
+  }
+
+  return Object.entries(value as Record<string, unknown>)
+    .map(([key, nestedValue]) => {
+      const label = key.replaceAll("_", " ");
+
+      return `${label}: ${renderCaseSectionValue(nestedValue)}`;
+    })
+    .join("\n");
+}
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -169,7 +196,7 @@ export function VisitDetailPage() {
           {Object.entries(sections).map(([key, value]) => (
             <div className="case-detail-item" key={key}>
               <dt>{key.replaceAll("_", " ")}</dt>
-              <dd>{value || "-"}</dd>
+              <dd>{renderCaseSectionValue(value)}</dd>
             </div>
           ))}
         </div>
@@ -197,6 +224,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <PrescriptionPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <PatientPortalPanel patientId={patientId} visitId={visitId} />
       )}
 
       {patientId && visitId && (
