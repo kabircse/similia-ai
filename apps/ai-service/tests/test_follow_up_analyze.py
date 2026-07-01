@@ -66,3 +66,32 @@ def test_follow_up_analysis_reports_positive_red_flags():
     assert "Chest pain or cardiac warning" in data["red_flags"]
     assert "Breathing difficulty" in data["red_flags"]
     assert data["recommended_next_steps"][0].startswith("Red flags detected")
+
+
+def test_follow_up_analysis_auto_detects_bangla_response_language():
+    response = client.post(
+        "/follow-up/analyze",
+        json={
+            "previous_visit": {
+                "chief_complaint": "উদ্বেগ ও ঘুমের সমস্যা",
+                "raw_case_text": "রোগীর ঘুম কম ছিল এবং উদ্বেগ ছিল।",
+            },
+            "current_visit": {
+                "chief_complaint": "Follow-up",
+                "raw_case_text": "ঘুম ভালো হয়েছে। উদ্বেগ কমেছে। বুকব্যথা নেই।",
+            },
+            "prescription": {
+                "remedy_name": "Calcarea carbonica",
+                "potency": "200C",
+            },
+            "response_language": "auto",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "Follow-up response সম্ভবত" in data["analysis_summary"]
+    assert "Calcarea carbonica 200C" in data["remedy_response_assessment"]
+    assert "চূড়ান্ত সিদ্ধান্ত" in data["safety_note"]

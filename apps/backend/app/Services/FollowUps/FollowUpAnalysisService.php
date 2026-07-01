@@ -20,7 +20,8 @@ class FollowUpAnalysisService
         ?int $previousVisitId = null,
         ?int $prescriptionId = null,
         bool $includeTimelineContext = true,
-        int $limitPreviousVisits = 3
+        int $limitPreviousVisits = 3,
+        string $responseLanguage = 'auto'
     ): FollowUpAnalysisRun {
         $previousVisit = $this->resolvePreviousVisit(
             patient: $patient,
@@ -46,6 +47,7 @@ class FollowUpAnalysisService
             'current_visit' => $this->visitSnapshot($currentVisit),
             'prescription' => $prescription ? $this->prescriptionSnapshot($prescription) : [],
             'timeline_context' => $timelineContext,
+            'response_language' => $responseLanguage,
         ];
 
         $response = Http::timeout(config('services.ai_service.timeout'))
@@ -104,6 +106,7 @@ class FollowUpAnalysisService
                 'safety_note' => $analysis['safety_note'] ?? null,
                 'metadata' => [
                     'timeline_context_count' => count($timelineContext),
+                    'response_language' => $payload['response_language'],
                 ],
             ]);
 

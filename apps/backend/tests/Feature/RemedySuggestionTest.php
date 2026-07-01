@@ -144,6 +144,7 @@ class RemedySuggestionTest extends TestCase
             ->postJson("/api/patients/{$patient->id}/visits/{$visit->id}/remedy-suggestions/generate", [
                 'method' => 'weighted',
                 'limit' => 3,
+                'response_language' => 'en-US',
             ])
             ->assertCreated()
             ->assertJsonPath('data.method', 'weighted')
@@ -159,6 +160,8 @@ class RemedySuggestionTest extends TestCase
             'rank' => 1,
         ]);
 
-        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/remedy/suggest'));
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/remedy/suggest')
+            && $request->data()['response_language'] === 'en-US'
+            && $request->data()['settings']['response_language'] === 'en-US');
     }
 }

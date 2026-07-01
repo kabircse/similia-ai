@@ -98,3 +98,35 @@ def test_potency_guidance_accepts_empty_php_array_snapshots():
 
     assert data["case_phase"] == "chronic"
     assert "selected remedy" in data["guidance_summary"]
+
+
+def test_potency_guidance_honors_bangla_response_language():
+    response = client.post(
+        "/potency/guidance",
+        json={
+            "case_snapshot": {
+                "chief_complaint": "Chronic chilly patient with low thirst.",
+                "raw_case_text": "Chilly, low thirst, desire sweets.",
+            },
+            "prescription_snapshot": {
+                "remedy_name": "Calcarea carbonica",
+                "potency": "200C",
+            },
+            "settings": {
+                "case_phase": "chronic",
+                "patient_sensitivity": "moderate",
+                "vitality_level": "moderate",
+                "pathology_depth": "functional",
+                "response_language": "bn-BD",
+            },
+            "knowledge_chunks": [],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "Calcarea carbonica" in data["guidance_summary"]
+    assert "potency guidance" in data["guidance_summary"]
+    assert "চূড়ান্ত সিদ্ধান্ত" in data["safety_note"]

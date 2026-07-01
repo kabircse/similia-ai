@@ -63,7 +63,8 @@ class FollowUpAnalysisController extends Controller
                 previousVisitId: $validated['previous_visit_id'] ?? null,
                 prescriptionId: $validated['prescription_id'] ?? null,
                 includeTimelineContext: $request->boolean('include_timeline_context', true),
-                limitPreviousVisits: (int) ($validated['limit_previous_visits'] ?? 3)
+                limitPreviousVisits: (int) ($validated['limit_previous_visits'] ?? 3),
+                responseLanguage: $validated['response_language'] ?? 'auto'
             );
         } catch (ConnectionException) {
             abort(502, 'AI service is not reachable. Please make sure FastAPI is running on port 8001.');

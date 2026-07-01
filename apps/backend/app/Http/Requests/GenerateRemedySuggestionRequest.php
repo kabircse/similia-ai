@@ -22,6 +22,7 @@ class GenerateRemedySuggestionRequest extends FormRequest
             'include_relationship' => ['nullable', 'boolean'],
             'include_medical_safety' => ['nullable', 'boolean'],
             'include_organon' => ['nullable', 'boolean'],
+            'response_language' => ['nullable', 'string', 'in:auto,bn-BD,en-US,hi-IN'],
         ];
     }
 }

@@ -61,6 +61,7 @@ class CaseQuestionConversationController extends Controller
                 visit: $visit,
                 doctor: $request->user(),
                 language: $request->validated('language') ?? 'bn-BD',
+                responseLanguage: $request->validated('response_language') ?? 'auto',
                 mode: $request->validated('mode') ?? 'ai_missing_questions',
                 maxQuestions: (int) ($request->validated('max_questions') ?? 10),
                 replaceActiveSession: $request->boolean('replace_active_session')
@@ -113,7 +114,8 @@ class CaseQuestionConversationController extends Controller
                 doctor: $request->user(),
                 answerText: $request->validated('answer_text'),
                 mergeToCaseText: $request->boolean('merge_to_case_text', true),
-                applyToCaseSections: $request->boolean('apply_to_case_sections', true)
+                applyToCaseSections: $request->boolean('apply_to_case_sections', true),
+                responseLanguage: $request->validated('response_language') ?? null
             );
         } catch (ConnectionException) {
             abort(502, 'AI service is not reachable. Please make sure FastAPI is running on port 8001.');

@@ -26,6 +26,7 @@ class GenerateFollowUpAnalysisRequest extends FormRequest
             ],
             'include_timeline_context' => ['nullable', 'boolean'],
             'limit_previous_visits' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'response_language' => ['nullable', 'string', 'in:auto,bn-BD,en-US,hi-IN'],
         ];
     }
 }

@@ -22,6 +22,7 @@ class AnswerCaseQuestionRequest extends FormRequest
             'answer_text' => ['required', 'string', 'max:20000'],
             'merge_to_case_text' => ['nullable', 'boolean'],
             'apply_to_case_sections' => ['nullable', 'boolean'],
+            'response_language' => ['nullable', 'string', 'in:auto,bn-BD,en-US,hi-IN'],
         ];
     }
 }

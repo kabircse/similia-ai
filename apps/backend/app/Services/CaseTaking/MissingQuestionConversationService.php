@@ -18,6 +18,7 @@ class MissingQuestionConversationService
         PatientVisit $visit,
         User $doctor,
         string $language = 'bn-BD',
+        string $responseLanguage = 'auto',
         string $mode = 'ai_missing_questions',
         int $maxQuestions = 10,
         bool $replaceActiveSession = false
@@ -25,6 +26,7 @@ class MissingQuestionConversationService
         $questions = $this->fetchQuestionsFromAi(
             visit: $visit,
             language: $language,
+            responseLanguage: $responseLanguage,
             maxQuestions: $maxQuestions
         );
 
@@ -37,6 +39,7 @@ class MissingQuestionConversationService
             $visit,
             $doctor,
             $language,
+            $responseLanguage,
             $mode,
             $maxQuestions,
             $replaceActiveSession,
@@ -71,6 +74,7 @@ class MissingQuestionConversationService
                 ],
                 'settings' => [
                     'max_questions' => $maxQuestions,
+                    'response_language' => $responseLanguage,
                 ],
                 'started_at' => now(),
             ]);
@@ -106,7 +110,8 @@ class MissingQuestionConversationService
         User $doctor,
         string $answerText,
         bool $mergeToCaseText = true,
-        bool $applyToCaseSections = true
+        bool $applyToCaseSections = true,
+        ?string $responseLanguage = null
     ): CaseQuestionSession {
         abort_unless($questionMessage->case_question_session_id === $session->id, 404);
         abort_unless($questionMessage->role === 'assistant', 422);
@@ -122,7 +127,8 @@ class MissingQuestionConversationService
         $aiUpdate = $this->applyAnswerWithAi(
             visit: $visit,
             questionMessage: $questionMessage,
-            answerText: $answerText
+            answerText: $answerText,
+            responseLanguage: $responseLanguage ?? ($session->settings['response_language'] ?? 'auto')
         );
 
         return DB::transaction(function () use (
@@ -203,12 +209,14 @@ class MissingQuestionConversationService
     private function fetchQuestionsFromAi(
         PatientVisit $visit,
         string $language,
+        string $responseLanguage,
         int $maxQuestions
     ): array {
         $response = Http::timeout(config('services.ai_service.timeout'))
             ->acceptJson()
             ->post(rtrim(config('services.ai_service.url'), '/').'/case/missing-question-conversation/start', [
                 'language' => $language,
+                'response_language' => $responseLanguage,
                 'max_questions' => $maxQuestions,
                 'raw_case_text' => $visit->raw_case_text,
                 'chief_complaint' => $visit->chief_complaint,
@@ -233,7 +241,8 @@ class MissingQuestionConversationService
     private function applyAnswerWithAi(
         PatientVisit $visit,
         CaseQuestionMessage $questionMessage,
-        string $answerText
+        string $answerText,
+        string $responseLanguage = 'auto'
     ): array {
         $response = Http::timeout(config('services.ai_service.timeout'))
             ->acceptJson()
@@ -243,6 +252,7 @@ class MissingQuestionConversationService
                 'question' => $questionMessage->content,
                 'answer' => $answerText,
                 'existing_case_sections' => $visit->case_sections ?? [],
+                'response_language' => $responseLanguage,
             ]);
 
         if ($response->failed()) {

@@ -69,6 +69,7 @@ class PotencyGuidanceService
             ],
             'settings' => $settings,
             'knowledge_chunks' => $knowledgeChunks,
+            'response_language' => $settings['response_language'] ?? 'auto',
         ];
 
         $response = Http::timeout(config('services.ai_service.timeout'))

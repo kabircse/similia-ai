@@ -62,6 +62,7 @@ class PotencyGuidanceController extends Controller
             'include_organon' => $request->boolean('include_organon', true),
             'include_philosophy' => $request->boolean('include_philosophy', true),
             'include_follow_up_context' => $request->boolean('include_follow_up_context', true),
+            'response_language' => $validated['response_language'] ?? 'auto',
         ];
 
         try {

@@ -93,6 +93,7 @@ class PotencyGuidanceTest extends TestCase
             'patient_sensitivity' => 'moderate',
             'vitality_level' => 'moderate',
             'pathology_depth' => 'functional',
+            'response_language' => 'bn-BD',
         ])
             ->assertCreated()
             ->assertJsonPath('data.case_phase', 'chronic')
@@ -115,7 +116,9 @@ class PotencyGuidanceTest extends TestCase
             'action' => 'generated_potency_guidance',
         ]);
 
-        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/potency/guidance'));
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/potency/guidance')
+            && $request->data()['response_language'] === 'bn-BD'
+            && $request->data()['settings']['response_language'] === 'bn-BD');
     }
 
     private function seedKnowledgeChunk(): void

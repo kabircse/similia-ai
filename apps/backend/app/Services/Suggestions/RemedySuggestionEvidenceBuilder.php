@@ -109,6 +109,10 @@ class RemedySuggestionEvidenceBuilder
                 'knowledge_chunks_count' => count($knowledge),
                 'knowledge_types' => collect($knowledge)->pluck('source_type')->unique()->values()->all(),
             ],
+            'settings' => [
+                'response_language' => $settings['response_language'] ?? 'auto',
+            ],
+            'response_language' => $settings['response_language'] ?? 'auto',
         ];
     }
 

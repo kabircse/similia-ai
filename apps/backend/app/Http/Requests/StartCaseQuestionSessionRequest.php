@@ -16,6 +16,7 @@ class StartCaseQuestionSessionRequest extends FormRequest
     {
         return [
             'language' => ['nullable', 'string', 'max:20'],
+            'response_language' => ['nullable', 'string', 'in:auto,bn-BD,en-US,hi-IN'],
             'mode' => ['nullable', Rule::in([
                 'ai_missing_questions',
                 'from_existing_missing_questions',
