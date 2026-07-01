@@ -2,6 +2,7 @@ import type { ElementType, ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  CalendarClock,
   LayoutDashboard,
   Users,
   ClipboardList,
@@ -19,7 +20,6 @@ import { getMe, logout } from "../../lib/api";
 import { hasPermission } from "../../lib/permissions";
 import type { Permission } from "../../lib/api";
 import { NotificationBell } from "../notifications/NotificationBell";
-import { ReviewQueueBadge } from "../review-queue/ReviewQueueBadge";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -42,6 +42,12 @@ const navItems: Array<{
     path: "/patients",
     icon: Users,
     permission: "manage_patients",
+  },
+  {
+    label: "Appointments",
+    path: "/appointments",
+    icon: CalendarClock,
+    permission: "manage_visits",
   },
   {
     label: "Review Queue",
@@ -171,7 +177,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="user-menu">
-            {hasPermission(permissions, "manage_visits") && <ReviewQueueBadge />}
             <NotificationBell />
 
             <div className="user-meta">

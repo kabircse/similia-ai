@@ -21,6 +21,7 @@ import { PrescriptionPanel } from "../components/prescriptions/PrescriptionPanel
 import { PrescriptionReviewPanel } from "../components/prescriptions/PrescriptionReviewPanel";
 import { PatientHandoutPanel } from "../components/patient-handouts/PatientHandoutPanel";
 import { PatientPortalPanel } from "../components/patient-portal/PatientPortalPanel";
+import { VisitAppointmentPanel } from "../components/appointments/VisitAppointmentPanel";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
@@ -283,6 +284,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <PatientPortalPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <VisitAppointmentPanel patientId={patientId} visitId={visitId} />
       )}
 
       {patientId && visitId && (

@@ -2503,22 +2503,6 @@ export type DoctorReviewQueueResponse = {
   };
 };
 
-export type DoctorReviewQueueSummary = {
-  open_count: number;
-  in_review_count: number;
-  urgent_count: number;
-  portal_submission_count: number;
-  latest_open: Array<{
-    id: number;
-    title: string;
-    priority: string;
-    status: string;
-    patient_name: string | null;
-    action_url: string | null;
-    created_at: string | null;
-  }>;
-};
-
 export type PublicFollowUpInvitation = {
   public_id: string;
   purpose: string;
@@ -2713,12 +2697,6 @@ export async function getDoctorReviewQueue(input?: {
   return response.data;
 }
 
-export async function getDoctorReviewQueueSummary(): Promise<DoctorReviewQueueSummary> {
-  const response = await api.get("/api/doctor-review-queue/summary");
-
-  return response.data.data;
-}
-
 export async function updateDoctorReviewQueueItem(
   itemId: string | number,
   input: {
@@ -2727,6 +2705,192 @@ export async function updateDoctorReviewQueueItem(
   }
 ): Promise<DoctorReviewQueueItem> {
   const response = await api.patch(`/api/doctor-review-queue/${itemId}`, input);
+
+  return response.data.data;
+}
+
+export type ClinicAppointmentReminder = {
+  id: number;
+  clinic_appointment_id: number;
+  doctor_id: number;
+  patient_id: number;
+  reminder_type: "doctor_task" | "patient_manual_contact";
+  channel: "in_app" | "phone" | "whatsapp" | "sms" | "email";
+  status: "pending" | "sent" | "skipped" | "failed" | "cancelled";
+  minutes_before: number;
+  due_at: string | null;
+  sent_at: string | null;
+  title: string;
+  message: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicAppointment = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number | null;
+  doctor_id: number;
+  prescription_id: number | null;
+  appointment_type:
+    | "initial"
+    | "follow_up"
+    | "phone_follow_up"
+    | "portal_review"
+    | "medicine_pickup"
+    | "other";
+  source: "manual" | "prescription_follow_up" | "patient_portal" | "review_queue";
+  status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show";
+  scheduled_start_at: string | null;
+  scheduled_end_at: string | null;
+  timezone: string;
+  title: string | null;
+  reason: string | null;
+  doctor_note: string | null;
+  patient_instruction: string | null;
+  contact_method: "phone" | "whatsapp" | "sms" | "email" | "in_person";
+  send_reminders: boolean;
+  reminder_minutes_before: number[];
+  confirmed_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  no_show_at: string | null;
+  metadata: Record<string, unknown>;
+  patient?: {
+    id: number;
+    name: string;
+    phone?: string | null;
+  };
+  visit?: {
+    id: number;
+    visit_date?: string | null;
+    chief_complaint?: string | null;
+  } | null;
+  prescription?: {
+    id: number;
+    remedy_name: string | null;
+    potency: string | null;
+    follow_up_date: string | null;
+  } | null;
+  reminders?: ClinicAppointmentReminder[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicAppointmentResponse = {
+  data: ClinicAppointment[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export type AppointmentSummary = {
+  today_count: number;
+  upcoming_count: number;
+  overdue_count: number;
+  next_appointments: Array<{
+    id: number;
+    patient_id: number;
+    patient_name: string | null;
+    patient_phone: string | null;
+    title: string | null;
+    status: string;
+    scheduled_start_at: string | null;
+  }>;
+};
+
+export type AppointmentInput = {
+  patient_id: number;
+  patient_visit_id?: number | null;
+  prescription_id?: number | null;
+  appointment_type?: ClinicAppointment["appointment_type"];
+  source?: ClinicAppointment["source"];
+  scheduled_start_at: string;
+  duration_minutes?: number;
+  timezone?: string;
+  title?: string | null;
+  reason?: string | null;
+  doctor_note?: string | null;
+  patient_instruction?: string | null;
+  contact_method?: ClinicAppointment["contact_method"];
+  send_reminders?: boolean;
+  reminder_minutes_before?: number[];
+};
+
+export async function getAppointments(input?: {
+  status?: string | null;
+  appointment_type?: string | null;
+  patient_id?: number | null;
+  date_from?: string | null;
+  date_to?: string | null;
+}): Promise<ClinicAppointmentResponse> {
+  const response = await api.get("/api/appointments", {
+    params: {
+      status: input?.status ?? null,
+      appointment_type: input?.appointment_type ?? null,
+      patient_id: input?.patient_id ?? null,
+      date_from: input?.date_from ?? null,
+      date_to: input?.date_to ?? null,
+      per_page: 30,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getAppointmentSummary(): Promise<AppointmentSummary> {
+  const response = await api.get("/api/appointments/summary");
+
+  return response.data.data;
+}
+
+export async function getVisitAppointments(
+  patientId: string | number,
+  visitId: string | number
+): Promise<ClinicAppointmentResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/appointments`
+  );
+
+  return response.data;
+}
+
+export async function createAppointment(
+  input: AppointmentInput
+): Promise<ClinicAppointment> {
+  const response = await api.post("/api/appointments", input);
+
+  return response.data.data;
+}
+
+export async function createVisitAppointment(
+  patientId: string | number,
+  visitId: string | number,
+  input: AppointmentInput
+): Promise<ClinicAppointment> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/appointments`,
+    input
+  );
+
+  return response.data.data;
+}
+
+export async function updateAppointmentStatus(
+  appointmentId: string | number,
+  input: {
+    status: ClinicAppointment["status"];
+    doctor_note?: string | null;
+  }
+): Promise<ClinicAppointment> {
+  const response = await api.patch(
+    `/api/appointments/${appointmentId}/status`,
+    input
+  );
 
   return response.data.data;
 }

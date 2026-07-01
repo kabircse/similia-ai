@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/routes/ProtectedRoute";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { AdvancedSearchPage } from "./pages/AdvancedSearchPage";
+import { AppointmentsPage } from "./pages/AppointmentsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PatientsPage } from "./pages/PatientsPage";
@@ -80,6 +81,15 @@ function App() {
         element={
           <ProtectedLayout>
             <PatientsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/appointments"
+        element={
+          <ProtectedLayout>
+            <AppointmentsPage />
           </ProtectedLayout>
         }
       />

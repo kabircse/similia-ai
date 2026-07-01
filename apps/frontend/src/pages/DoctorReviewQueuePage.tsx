@@ -113,9 +113,6 @@ function ReviewQueueCard({ item }: { item: DoctorReviewQueueItem }) {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["doctor-review-queue"] });
-      await queryClient.invalidateQueries({
-        queryKey: ["doctor-review-queue-summary"],
-      });
     },
   });
 

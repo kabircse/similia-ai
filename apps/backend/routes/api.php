@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CaseQuestionConversationController;
 use App\Http\Controllers\Api\CaseRubricController;
 use App\Http\Controllers\Api\ClinicReportController;
+use App\Http\Controllers\Api\ClinicAppointmentController;
 use App\Http\Controllers\Api\ClinicSettingController;
 use App\Http\Controllers\Api\ClinicalDashboardController;
 use App\Http\Controllers\Api\DashboardController;
@@ -80,6 +81,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count', [UserNotificationController::class, 'unreadCount']);
     Route::patch('/notifications/{notification}/read', [UserNotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllAsRead']);
+    Route::middleware('permission:manage_visits')->group(function () {
+        Route::get('/appointments/summary', [ClinicAppointmentController::class, 'summary']);
+        Route::get('/appointments', [ClinicAppointmentController::class, 'index']);
+        Route::post('/appointments', [ClinicAppointmentController::class, 'store']);
+        Route::get('/appointments/{appointment}', [ClinicAppointmentController::class, 'show']);
+        Route::patch('/appointments/{appointment}', [ClinicAppointmentController::class, 'update']);
+        Route::patch('/appointments/{appointment}/status', [ClinicAppointmentController::class, 'updateStatus']);
+        Route::get('/patients/{patient}/visits/{visit}/appointments', [ClinicAppointmentController::class, 'visitAppointments']);
+        Route::post('/patients/{patient}/visits/{visit}/appointments', [ClinicAppointmentController::class, 'storeForVisit']);
+    });
     Route::middleware('permission:manage_visits')->group(function () {
         Route::get('/doctor-review-queue/summary', [DoctorReviewQueueController::class, 'summary']);
         Route::get('/doctor-review-queue', [DoctorReviewQueueController::class, 'index']);
