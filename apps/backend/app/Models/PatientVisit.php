@@ -86,4 +86,9 @@ class PatientVisit extends Model
     {
         return $this->hasMany(PotencyGuidanceRun::class);
     }
+
+    public function remedyRelationshipRuns(): HasMany
+    {
+        return $this->hasMany(RemedyRelationshipRun::class);
+    }
 }

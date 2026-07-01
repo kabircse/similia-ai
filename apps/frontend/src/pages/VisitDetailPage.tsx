@@ -23,6 +23,7 @@ import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
 import { FollowUpAnalysisPanel } from "../components/follow-ups/FollowUpAnalysisPanel";
 import { PotencyGuidancePanel } from "../components/potency/PotencyGuidancePanel";
+import { RemedyRelationshipPanel } from "../components/remedy-relationships/RemedyRelationshipPanel";
 
 export function VisitDetailPage() {
   const { patientId, visitId } = useParams();
@@ -263,6 +264,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <PotencyGuidancePanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && visitId && (
+        <RemedyRelationshipPanel patientId={patientId} visitId={visitId} />
       )}
 
       {patientId && visitId && (
