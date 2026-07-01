@@ -50,3 +50,22 @@ def test_missing_question_apply_answer_returns_case_update():
     )
     assert "q_1_thermal" in data["case_section_updates"]["missing_question_answers"]
     assert "Q: Is the patient" in data["raw_case_note"]
+
+
+def test_missing_question_conversation_can_force_english_response_language():
+    response = client.post(
+        "/case/missing-question-conversation/start",
+        json={
+            "language": "bn-BD",
+            "response_language": "en-US",
+            "max_questions": 1,
+            "missing_questions": [],
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["questions"][0]["question"].startswith("Is the patient")
+    assert "doctor-facing" in data["safety_note"]

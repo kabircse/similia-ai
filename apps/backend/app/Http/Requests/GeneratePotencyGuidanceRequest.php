@@ -38,6 +38,7 @@ class GeneratePotencyGuidanceRequest extends FormRequest
             'include_organon' => ['nullable', 'boolean'],
             'include_philosophy' => ['nullable', 'boolean'],
             'include_follow_up_context' => ['nullable', 'boolean'],
+            'response_language' => ['nullable', 'string', 'in:auto,bn-BD,en-US,hi-IN'],
         ];
     }
 }

@@ -12,6 +12,7 @@ import {
   completeCaseQuestionSession,
   getCaseQuestionSessions,
   startCaseQuestionSession,
+  type AiResponseLanguage,
   type CaseQuestionMessage,
   type CaseQuestionSession,
 } from "../../lib/api";
@@ -49,6 +50,8 @@ export function MissingQuestionConversationPanel({
   const interimAnswerRef = useRef("");
 
   const [language, setLanguage] = useState("bn-BD");
+  const [responseLanguage, setResponseLanguage] =
+    useState<AiResponseLanguage>("auto");
   const [maxQuestions, setMaxQuestions] = useState(8);
   const [answerText, setAnswerText] = useState("");
   const [isDictating, setIsDictating] = useState(false);
@@ -86,6 +89,7 @@ export function MissingQuestionConversationPanel({
     mutationFn: () =>
       startCaseQuestionSession(patientId, visitId, {
         language,
+        response_language: responseLanguage,
         max_questions: maxQuestions,
         replace_active_session: true,
       }),
@@ -107,6 +111,7 @@ export function MissingQuestionConversationPanel({
         answer_text: [answerText, interimAnswer].filter(Boolean).join(" ").trim(),
         merge_to_case_text: true,
         apply_to_case_sections: true,
+        response_language: responseLanguage,
       });
     },
     onSuccess: async () => {
@@ -248,7 +253,7 @@ export function MissingQuestionConversationPanel({
 
       <div className="conversation-start-row">
         <label>
-          Language
+          Dictation Language
           <select
             className="method-select"
             value={language}
@@ -257,6 +262,22 @@ export function MissingQuestionConversationPanel({
           >
             <option value="bn-BD">Bangla</option>
             <option value="en-US">English</option>
+          </select>
+        </label>
+
+        <label>
+          AI Response Language
+          <select
+            className="method-select"
+            value={responseLanguage}
+            onChange={(event) =>
+              setResponseLanguage(event.target.value as AiResponseLanguage)
+            }
+          >
+            <option value="auto">Auto Detect</option>
+            <option value="bn-BD">Bangla</option>
+            <option value="en-US">English</option>
+            <option value="hi-IN">Hindi</option>
           </select>
         </label>
 

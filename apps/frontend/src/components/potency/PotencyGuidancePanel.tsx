@@ -11,6 +11,7 @@ import {
 import {
   generatePotencyGuidance,
   getPotencyGuidanceRuns,
+  type AiResponseLanguage,
   type PotencyCasePhase,
   type PotencyGuidanceRun,
   type PotencyPathology,
@@ -52,6 +53,8 @@ export function PotencyGuidancePanel({
     useState<PotencySensitivity>("unclear");
   const [vitality, setVitality] = useState<PotencyVitality>("unclear");
   const [pathology, setPathology] = useState<PotencyPathology>("unclear");
+  const [responseLanguage, setResponseLanguage] =
+    useState<AiResponseLanguage>("auto");
 
   const runsQuery = useQuery({
     queryKey: ["patients", patientId, "visits", visitId, "potency-guidance"],
@@ -68,6 +71,7 @@ export function PotencyGuidancePanel({
         include_organon: true,
         include_philosophy: true,
         include_follow_up_context: true,
+        response_language: responseLanguage,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -98,6 +102,22 @@ export function PotencyGuidancePanel({
       </div>
 
       <div className="potency-input-grid">
+        <label>
+          AI Response Language
+          <select
+            className="method-select"
+            value={responseLanguage}
+            onChange={(event) =>
+              setResponseLanguage(event.target.value as AiResponseLanguage)
+            }
+          >
+            <option value="auto">Auto Detect</option>
+            <option value="bn-BD">Bangla</option>
+            <option value="en-US">English</option>
+            <option value="hi-IN">Hindi</option>
+          </select>
+        </label>
+
         <label>
           Case Phase
           <select

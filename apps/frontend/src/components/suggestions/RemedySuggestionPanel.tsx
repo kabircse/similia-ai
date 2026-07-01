@@ -10,6 +10,7 @@ import {
 import {
   generateRemedySuggestions,
   getRemedySuggestionRuns,
+  type AiResponseLanguage,
   type RemedySuggestionItem,
   type RemedySuggestionMethod,
 } from "../../lib/api";
@@ -47,6 +48,8 @@ export function RemedySuggestionPanel({
   const queryClient = useQueryClient();
   const [method, setMethod] = useState<Method>("weighted");
   const [limit, setLimit] = useState(3);
+  const [responseLanguage, setResponseLanguage] =
+    useState<AiResponseLanguage>("auto");
 
   const runsQuery = useQuery({
     queryKey: ["patients", patientId, "visits", visitId, "remedy-suggestions"],
@@ -62,6 +65,7 @@ export function RemedySuggestionPanel({
         include_relationship: true,
         include_medical_safety: true,
         include_organon: true,
+        response_language: responseLanguage,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -95,6 +99,22 @@ export function RemedySuggestionPanel({
       </div>
 
       <div className="inline-actions">
+        <label className="compact-control">
+          AI Response Language
+          <select
+            className="method-select"
+            value={responseLanguage}
+            onChange={(event) =>
+              setResponseLanguage(event.target.value as AiResponseLanguage)
+            }
+          >
+            <option value="auto">Auto Detect</option>
+            <option value="bn-BD">Bangla</option>
+            <option value="en-US">English</option>
+            <option value="hi-IN">Hindi</option>
+          </select>
+        </label>
+
         <label className="compact-control">
           Method
           <select

@@ -59,6 +59,7 @@ class RemedySuggestionController extends Controller
             'include_relationship' => $request->boolean('include_relationship', true),
             'include_medical_safety' => $request->boolean('include_medical_safety', true),
             'include_organon' => $request->boolean('include_organon', true),
+            'response_language' => $validated['response_language'] ?? 'auto',
         ];
 
         try {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -11,6 +12,7 @@ import {
 import {
   generateFollowUpAnalysis,
   getFollowUpAnalyses,
+  type AiResponseLanguage,
   type FollowUpAnalysisRun,
   type FollowUpProgressItem,
 } from "../../lib/api";
@@ -44,6 +46,8 @@ export function FollowUpAnalysisPanel({
   visitId,
 }: FollowUpAnalysisPanelProps) {
   const queryClient = useQueryClient();
+  const [responseLanguage, setResponseLanguage] =
+    useState<AiResponseLanguage>("auto");
 
   const analysesQuery = useQuery({
     queryKey: ["patients", patientId, "visits", visitId, "follow-up-analyses"],
@@ -55,6 +59,7 @@ export function FollowUpAnalysisPanel({
       generateFollowUpAnalysis(patientId, visitId, {
         include_timeline_context: true,
         limit_previous_visits: 3,
+        response_language: responseLanguage,
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -86,6 +91,22 @@ export function FollowUpAnalysisPanel({
       </div>
 
       <div className="inline-actions">
+        <label className="compact-control">
+          AI Response Language
+          <select
+            className="method-select"
+            value={responseLanguage}
+            onChange={(event) =>
+              setResponseLanguage(event.target.value as AiResponseLanguage)
+            }
+          >
+            <option value="auto">Auto Detect</option>
+            <option value="bn-BD">Bangla</option>
+            <option value="en-US">English</option>
+            <option value="hi-IN">Hindi</option>
+          </select>
+        </label>
+
         <button
           className="primary-button inline-button"
           onClick={() => generateMutation.mutate()}

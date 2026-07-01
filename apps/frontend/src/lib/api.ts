@@ -9,6 +9,8 @@ export const api = axios.create({
   },
 });
 
+export type AiResponseLanguage = "auto" | "bn-BD" | "en-US" | "hi-IN";
+
 export type AuthUser = {
   id: number;
   name: string;
@@ -836,6 +838,7 @@ export async function startCaseQuestionSession(
   visitId: string | number,
   input: {
     language?: string;
+    response_language?: AiResponseLanguage;
     mode?: "ai_missing_questions" | "from_existing_missing_questions";
     max_questions?: number;
     replace_active_session?: boolean;
@@ -845,6 +848,7 @@ export async function startCaseQuestionSession(
     `/api/patients/${patientId}/visits/${visitId}/question-sessions/start`,
     {
       language: input.language ?? "bn-BD",
+      response_language: input.response_language ?? "auto",
       mode: input.mode ?? "ai_missing_questions",
       max_questions: input.max_questions ?? 10,
       replace_active_session: input.replace_active_session ?? false,
@@ -863,6 +867,7 @@ export async function answerCaseQuestion(
     answer_text: string;
     merge_to_case_text?: boolean;
     apply_to_case_sections?: boolean;
+    response_language?: AiResponseLanguage;
   }
 ): Promise<CaseQuestionSession> {
   const response = await api.post(
@@ -872,6 +877,7 @@ export async function answerCaseQuestion(
       answer_text: input.answer_text,
       merge_to_case_text: input.merge_to_case_text ?? true,
       apply_to_case_sections: input.apply_to_case_sections ?? true,
+      response_language: input.response_language ?? "auto",
     }
   );
 
@@ -1265,6 +1271,7 @@ export async function generateRemedySuggestions(
     include_relationship?: boolean;
     include_medical_safety?: boolean;
     include_organon?: boolean;
+    response_language?: AiResponseLanguage;
   }
 ): Promise<RemedySuggestionRun> {
   const response = await api.post(
@@ -1277,6 +1284,7 @@ export async function generateRemedySuggestions(
       include_relationship: input.include_relationship ?? true,
       include_medical_safety: input.include_medical_safety ?? true,
       include_organon: input.include_organon ?? true,
+      response_language: input.response_language ?? "auto",
     }
   );
 
@@ -1376,6 +1384,7 @@ export async function generateFollowUpAnalysis(
     prescription_id?: number | null;
     include_timeline_context?: boolean;
     limit_previous_visits?: number;
+    response_language?: AiResponseLanguage;
   }
 ): Promise<FollowUpAnalysisRun> {
   const response = await api.post(
@@ -1385,6 +1394,7 @@ export async function generateFollowUpAnalysis(
       prescription_id: input?.prescription_id ?? null,
       include_timeline_context: input?.include_timeline_context ?? true,
       limit_previous_visits: input?.limit_previous_visits ?? 3,
+      response_language: input?.response_language ?? "auto",
     }
   );
 
@@ -1490,6 +1500,7 @@ export async function generatePotencyGuidance(
     include_organon?: boolean;
     include_philosophy?: boolean;
     include_follow_up_context?: boolean;
+    response_language?: AiResponseLanguage;
   }
 ): Promise<PotencyGuidanceRun> {
   const response = await api.post(
@@ -1506,6 +1517,7 @@ export async function generatePotencyGuidance(
       include_organon: input?.include_organon ?? true,
       include_philosophy: input?.include_philosophy ?? true,
       include_follow_up_context: input?.include_follow_up_context ?? true,
+      response_language: input?.response_language ?? "auto",
     }
   );
 

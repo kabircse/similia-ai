@@ -54,6 +54,7 @@ class MissingQuestionConversationTest extends TestCase
 
         $this->postJson("/api/patients/{$patient->id}/visits/{$visit->id}/question-sessions/start", [
             'language' => 'bn-BD',
+            'response_language' => 'en-US',
             'max_questions' => 5,
             'replace_active_session' => true,
         ])
@@ -80,6 +81,9 @@ class MissingQuestionConversationTest extends TestCase
             'category' => 'case_taking',
             'action' => 'started_missing_question_conversation',
         ]);
+
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/case/missing-question-conversation/start')
+            && $request->data()['response_language'] === 'en-US');
     }
 
     public function test_doctor_can_answer_question_and_update_case(): void
@@ -132,6 +136,7 @@ class MissingQuestionConversationTest extends TestCase
 
         $sessionResponse = $this->postJson("/api/patients/{$patient->id}/visits/{$visit->id}/question-sessions/start", [
             'language' => 'bn-BD',
+            'response_language' => 'bn-BD',
         ])->json('data');
 
         $questionId = $sessionResponse['messages'][0]['id'];
@@ -142,6 +147,7 @@ class MissingQuestionConversationTest extends TestCase
             'answer_text' => 'শীত বেশি লাগে',
             'merge_to_case_text' => true,
             'apply_to_case_sections' => true,
+            'response_language' => 'hi-IN',
         ])
             ->assertOk()
             ->assertJsonPath('data.answered_questions', 1)
@@ -164,6 +170,9 @@ class MissingQuestionConversationTest extends TestCase
             'category' => 'case_taking',
             'action' => 'answered_missing_question',
         ]);
+
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/case/missing-question-conversation/apply-answer')
+            && $request->data()['response_language'] === 'hi-IN');
     }
 
     public function test_doctor_cannot_access_other_doctors_question_sessions(): void

@@ -94,6 +94,8 @@ class RemedySuggestRequest(BaseModel):
     candidates: List[Dict[str, Any]] = Field(default_factory=list)
     knowledge_chunks: List[Dict[str, Any]] = Field(default_factory=list)
     retrieved_sources: Dict[str, Any] = Field(default_factory=dict)
+    settings: Dict[str, Any] = Field(default_factory=dict)
+    response_language: str = "auto"
 
 
 class RemedySuggestItem(BaseModel):
@@ -126,6 +128,7 @@ class RemedySuggestResponse(BaseModel):
 
 class MissingQuestionConversationStartRequest(BaseModel):
     language: str = "bn-BD"
+    response_language: str = "auto"
     max_questions: int = 10
     raw_case_text: Optional[str] = None
     chief_complaint: Optional[str] = None
@@ -151,6 +154,7 @@ class MissingQuestionApplyAnswerRequest(BaseModel):
     category: Optional[str] = None
     question: str
     answer: str
+    response_language: str = "auto"
     existing_case_sections: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -165,6 +169,7 @@ class FollowUpAnalyzeRequest(BaseModel):
     current_visit: Dict[str, Any] = Field(default_factory=dict)
     prescription: Dict[str, Any] = Field(default_factory=dict)
     timeline_context: List[Dict[str, Any]] = Field(default_factory=list)
+    response_language: str = "auto"
 
 
 class FollowUpProgressItemModel(BaseModel):
@@ -209,6 +214,7 @@ class PotencyGuidanceRequest(BaseModel):
     remedy: Any = Field(default_factory=dict)
     settings: Dict[str, Any] = Field(default_factory=dict)
     knowledge_chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    response_language: str = "auto"
 
 
 class PotencyGuidanceOptionModel(BaseModel):
@@ -267,6 +273,97 @@ def sentence_trim(text: str, max_length: int = 220) -> str:
         return text
 
     return text[:max_length].rstrip() + "..."
+
+
+def detect_language_from_text(text: Optional[str]) -> str:
+    text = text or ""
+
+    bangla_chars = sum(1 for ch in text if "\u0980" <= ch <= "\u09FF")
+    devanagari_chars = sum(1 for ch in text if "\u0900" <= ch <= "\u097F")
+    latin_chars = sum(1 for ch in text if "a" <= ch.lower() <= "z")
+
+    if bangla_chars > 5 and bangla_chars >= latin_chars:
+        return "bn-BD"
+
+    if devanagari_chars > 5 and devanagari_chars >= latin_chars:
+        return "hi-IN"
+
+    return "en-US"
+
+
+def resolve_response_language(
+    requested: Optional[str],
+    *texts: Optional[str],
+) -> str:
+    if requested and requested != "auto":
+        return requested
+
+    combined = "\n".join([text or "" for text in texts])
+
+    return detect_language_from_text(combined)
+
+
+def language_name(language: str) -> str:
+    mapping = {
+        "bn-BD": "Bangla",
+        "en-US": "English",
+        "hi-IN": "Hindi",
+        "ar": "Arabic",
+        "fr": "French",
+        "es": "Spanish",
+    }
+
+    return mapping.get(language, language)
+
+
+def requested_response_language(
+    top_level: Optional[str],
+    settings: Optional[Dict[str, Any]] = None,
+) -> str:
+    if top_level and top_level != "auto":
+        return top_level
+
+    settings_language = (settings or {}).get("response_language")
+    if settings_language:
+        return str(settings_language)
+
+    return top_level or "auto"
+
+
+def localized_safety_note(language: str, feature: str = "AI assistant") -> str:
+    prescription_type = (
+        "potency prescription"
+        if feature == "potency guidance"
+        else "prescription"
+    )
+
+    if language == "bn-BD":
+        prescription_phrase = (
+            "স্বয়ংক্রিয় potency prescription"
+            if feature == "potency guidance"
+            else "স্বয়ংক্রিয় প্রেসক্রিপশন"
+        )
+        return (
+            f"এটি শুধুমাত্র চিকিৎসকের জন্য {feature} সিদ্ধান্ত-সহায়ক বিশ্লেষণ। "
+            f"এটি {prescription_phrase} নয়। চূড়ান্ত সিদ্ধান্ত চিকিৎসক নিবেন।"
+        )
+
+    if language == "hi-IN":
+        prescription_phrase = (
+            "automatic potency prescription"
+            if feature == "potency guidance"
+            else "automatic prescription"
+        )
+        return (
+            f"यह केवल डॉक्टर के लिए {feature} decision-support है। "
+            f"यह {prescription_phrase} नहीं है। अंतिम निर्णय डॉक्टर लेंगे।"
+        )
+
+    return (
+        f"This is doctor-facing {feature} decision support only. "
+        f"It is not an automatic {prescription_type}. "
+        "Final decision must be made by the practitioner."
+    )
 
 
 def _short_text(text: Optional[str], limit: int = 260) -> str:
@@ -484,6 +581,18 @@ def _default_questions(language: str) -> List[str]:
             "যদি নারী রোগী হন, মাসিক, স্তন বা স্রাব সংক্রান্ত কোনো উপসর্গ আছে কি?",
         ]
 
+    if language == "hi-IN":
+        return [
+            "रोगी को सामान्यतः गर्मी से अधिक परेशानी होती है या ठंड से?",
+            "प्यास कैसी है: कम, अधिक, या सामान्य?",
+            "किससे complaint बढ़ती है और किससे कम होती है?",
+            "मुख्य डर, चिंता, या mental changes क्या हैं?",
+            "नींद, सपने, और जागने के बाद की स्थिति कैसी है?",
+            "Food desires या aversions हैं, जैसे sweets, spicy food, eggs, milk?",
+            "Stool या urine में कोई बदलाव है?",
+            "Female patient में menstrual, breast, या discharge symptoms हैं?",
+        ]
+
     return [
         "Is the patient generally worse from heat or cold?",
         "How is the thirst: low, increased, or normal?",
@@ -494,6 +603,84 @@ def _default_questions(language: str) -> List[str]:
         "Any change in stool or urine?",
         "For female patients, any menstrual, breast, or discharge symptoms?",
     ]
+
+
+def _localized_question_for_category(category: str, language: str, original: str) -> str:
+    questions_by_category = {
+        "thermal_state": {
+            "bn-BD": "রোগীর গরমে বেশি কষ্ট হয় নাকি শীতে বেশি কষ্ট হয়?",
+            "hi-IN": "रोगी को सामान्यतः गर्मी से अधिक परेशानी होती है या ठंड से?",
+            "en-US": "Is the patient generally worse from heat or cold?",
+        },
+        "thirst": {
+            "bn-BD": "পিপাসা কেমন—কম, বেশি, নাকি স্বাভাবিক?",
+            "hi-IN": "प्यास कैसी है: कम, अधिक, या सामान्य?",
+            "en-US": "How is the thirst: low, increased, or normal?",
+        },
+        "modalities": {
+            "bn-BD": "কোন জিনিসে উপসর্গ বাড়ে এবং কোন জিনিসে কমে?",
+            "hi-IN": "किससे complaint बढ़ती है और किससे कम होती है?",
+            "en-US": "What makes the complaint worse and what makes it better?",
+        },
+        "mentals": {
+            "bn-BD": "রোগীর প্রধান ভয়, দুশ্চিন্তা বা মানসিক পরিবর্তন কী?",
+            "hi-IN": "मुख्य डर, चिंता, या mental changes क्या हैं?",
+            "en-US": "What are the main fears, anxieties, or mental changes?",
+        },
+        "dreams": {
+            "bn-BD": "স্বপ্নের ধরন বা বারবার দেখা কোনো স্বপ্ন আছে কি?",
+            "hi-IN": "किस तरह के dreams आते हैं या कोई recurring dream है?",
+            "en-US": "What kinds of dreams or recurring dreams are present?",
+        },
+        "sleep": {
+            "bn-BD": "ঘুম এবং ঘুম থেকে ওঠার পর অনুভূতি কেমন?",
+            "hi-IN": "नींद और जागने के बाद की feeling कैसी है?",
+            "en-US": "How are sleep and the feeling after waking?",
+        },
+        "food_desires": {
+            "bn-BD": "খাবারের বিশেষ পছন্দ বা আকর্ষণ কী আছে?",
+            "hi-IN": "Food desires या strong cravings क्या हैं?",
+            "en-US": "What food desires or strong cravings are present?",
+        },
+        "food_aversions": {
+            "bn-BD": "খাবারের বিশেষ অপছন্দ বা intolerance কী আছে?",
+            "hi-IN": "Food aversions या intolerance क्या हैं?",
+            "en-US": "What food aversions or intolerances are present?",
+        },
+        "stool": {
+            "bn-BD": "পায়খানার কোনো পরিবর্তন আছে কি?",
+            "hi-IN": "Stool में कोई बदलाव है?",
+            "en-US": "Any change in stool?",
+        },
+        "urine": {
+            "bn-BD": "প্রস্রাবের কোনো পরিবর্তন আছে কি?",
+            "hi-IN": "Urine में कोई बदलाव है?",
+            "en-US": "Any change in urine?",
+        },
+        "menses": {
+            "bn-BD": "মাসিক সংক্রান্ত কোনো উপসর্গ বা পরিবর্তন আছে কি?",
+            "hi-IN": "Menstrual symptoms या changes क्या हैं?",
+            "en-US": "Any menstrual symptoms or changes?",
+        },
+        "female_symptoms": {
+            "bn-BD": "মাসিক, স্তন বা স্রাব সংক্রান্ত কোনো উপসর্গ আছে কি?",
+            "hi-IN": "Menstrual, breast, या discharge symptoms हैं?",
+            "en-US": "Any menstrual, breast, or discharge symptoms?",
+        },
+    }
+
+    language_key = "bn-BD" if _lang_bn(language) else language
+    localized = questions_by_category.get(category, {}).get(language_key)
+    if localized:
+        return localized
+
+    if _lang_bn(language):
+        return f"এই বিষয়টি বিস্তারিত বলুন: {original}"
+
+    if language == "hi-IN":
+        return f"इस बात को विस्तार से बताएं: {original}"
+
+    return original
 
 
 def _answer_category_update(
@@ -1300,28 +1487,44 @@ def start_missing_question_conversation(
     payload: MissingQuestionConversationStartRequest,
 ) -> MissingQuestionConversationStartResponse:
     questions: List[MissingQuestionItem] = []
-    source_questions = payload.missing_questions or _default_questions(payload.language)
+    language = resolve_response_language(
+        payload.response_language,
+        payload.raw_case_text,
+        payload.chief_complaint,
+        payload.language,
+    )
+    source_questions = payload.missing_questions or _default_questions(language)
 
     for index, question in enumerate(source_questions[: payload.max_questions]):
         category = _category_from_question(question)
+        localized_question = _localized_question_for_category(
+            category,
+            language,
+            question,
+        )
         questions.append(
             MissingQuestionItem(
-                question_key=_question_key(question, index),
+                question_key=_question_key(localized_question, index),
                 category=category,
                 importance=(
                     "important"
                     if category in ["mentals", "modalities", "thermal_state"]
                     else "normal"
                 ),
-                question=question,
+                question=localized_question,
             )
         )
 
     for red_index, red_flag in enumerate(payload.red_flags[:3]):
-        if _lang_bn(payload.language):
+        if _lang_bn(language):
             question = (
                 f"রেড ফ্ল্যাগ যাচাই: {red_flag} — এ বিষয়ে মেডিক্যাল "
                 "মূল্যায়ন/রিপোর্ট/ডাক্তারের পরামর্শ হয়েছে কি?"
+            )
+        elif language == "hi-IN":
+            question = (
+                f"Red flag check: {red_flag}. क्या इसकी medical evaluation "
+                "या investigation हुई है?"
             )
         else:
             question = (
@@ -1338,10 +1541,7 @@ def start_missing_question_conversation(
             )
         )
 
-    safety_note = (
-        "This missing-question conversation is for doctor-side case completion only. "
-        "It does not prescribe medicine."
-    )
+    safety_note = localized_safety_note(language, "missing-question conversation")
 
     return MissingQuestionConversationStartResponse(
         questions=questions[: payload.max_questions],
@@ -1356,6 +1556,11 @@ def start_missing_question_conversation(
 def apply_missing_question_answer(
     payload: MissingQuestionApplyAnswerRequest,
 ) -> MissingQuestionApplyAnswerResponse:
+    language = resolve_response_language(
+        payload.response_language,
+        payload.answer,
+        payload.question,
+    )
     category = payload.category or _category_from_question(payload.question)
     question_key = payload.question_key or "question"
     answer = payload.answer.strip()
@@ -1380,7 +1585,12 @@ def apply_missing_question_answer(
     updates["missing_question_answers"] = existing_answers
 
     raw_note = f"Q: {question}\nA: {answer}"
-    summary = f"Answer saved under {category}: {answer[:220]}"
+    if _lang_bn(language):
+        summary = f"{category} বিভাগে উত্তর সংরক্ষণ করা হয়েছে: {answer[:220]}"
+    elif language == "hi-IN":
+        summary = f"{category} में answer save किया गया: {answer[:220]}"
+    else:
+        summary = f"Answer saved under {category}: {answer[:220]}"
 
     return MissingQuestionApplyAnswerResponse(
         case_section_updates=updates,
@@ -1393,6 +1603,11 @@ def apply_missing_question_answer(
 def analyze_follow_up(payload: FollowUpAnalyzeRequest) -> FollowUpAnalyzeResponse:
     previous_text = _text_from_visit(payload.previous_visit)
     current_text = _text_from_visit(payload.current_visit)
+    language = resolve_response_language(
+        payload.response_language,
+        current_text,
+        previous_text,
+    )
     improvement, worsening, unchanged, new_symptoms = _extract_progress_points(current_text)
     red_flags = _red_flags_from_text(current_text)
     progress_items = _make_progress_items(
@@ -1426,7 +1641,9 @@ def analyze_follow_up(payload: FollowUpAnalyzeRequest) -> FollowUpAnalyzeRespons
         ["old symptom", "old symptoms", "পুরনো লক্ষণ", "পুরাতন লক্ষণ"],
     ):
         old_symptoms_returned.append(
-            "Patient reports return of old symptoms; review direction of cure carefully."
+            "রোগী পুরনো লক্ষণ ফিরে আসার কথা বলেছেন; direction of cure সতর্কভাবে review করুন."
+            if _lang_bn(language)
+            else "Patient reports return of old symptoms; review direction of cure carefully."
         )
 
     possible_aggravation_signs: List[str] = []
@@ -1445,41 +1662,86 @@ def analyze_follow_up(payload: FollowUpAnalyzeRequest) -> FollowUpAnalyzeRespons
         ],
     ):
         possible_aggravation_signs.append(
-            "Possible aggravation reported; confirm timing, intensity, duration, and general wellbeing."
+            "সম্ভাব্য aggravation বলা হয়েছে; timing, intensity, duration এবং general wellbeing নিশ্চিত করুন."
+            if _lang_bn(language)
+            else "Possible aggravation reported; confirm timing, intensity, duration, and general wellbeing."
         )
 
-    analysis_summary = (
-        f"Follow-up response appears {response_level}. "
-        f"Reported improvements: {len(improvement)}, worsening points: {len(worsening)}, "
-        f"new symptoms: {len(new_symptoms)}, red flags: {len(red_flags)}."
-    )
-
-    remedy_response_assessment = (
-        f"Response after {remedy_label} is assessed as {response_level}. "
-        "This is only a clinical progress summary and not a prescription decision."
-    )
-
-    suggested_follow_up_questions = [
-        "What changed first after the prescription, and when did it happen?",
-        "How are energy, sleep, appetite, thirst, stool, and mood compared with the previous visit?",
-        "Did any old symptom return, and was it milder, shorter, or in reverse order?",
-        "Did any new symptom appear after the remedy, and how intense is it?",
-        "Was there any initial aggravation before improvement?",
-    ]
+    if _lang_bn(language):
+        analysis_summary = (
+            f"Follow-up response সম্ভবত {response_level}. "
+            f"Improvement points: {len(improvement)}, worsening points: {len(worsening)}, "
+            f"new symptoms: {len(new_symptoms)}, red flags: {len(red_flags)}."
+        )
+        remedy_response_assessment = (
+            f"{remedy_label} এর পর response {response_level} হিসেবে দেখা যাচ্ছে. "
+            "এটি শুধু clinical progress summary, prescription decision নয়."
+        )
+        suggested_follow_up_questions = [
+            "Prescription এর পর প্রথম কোন পরিবর্তন হয়েছে, এবং কখন?",
+            "পূর্বের visit এর তুলনায় energy, sleep, appetite, thirst, stool এবং mood কেমন?",
+            "কোন পুরনো symptom ফিরে এসেছে কি, এবং তা milder বা shorter ছিল কি?",
+            "Remedy এর পর কোনো নতুন symptom এসেছে কি, এবং intensity কত?",
+            "Improvement এর আগে initial aggravation হয়েছিল কি?",
+        ]
+    elif language == "hi-IN":
+        analysis_summary = (
+            f"Follow-up response {response_level} लगता है. "
+            f"Improvement points: {len(improvement)}, worsening points: {len(worsening)}, "
+            f"new symptoms: {len(new_symptoms)}, red flags: {len(red_flags)}."
+        )
+        remedy_response_assessment = (
+            f"{remedy_label} के बाद response {response_level} assess किया गया. "
+            "यह clinical progress summary है, prescription decision नहीं."
+        )
+        suggested_follow_up_questions = [
+            "Prescription के बाद सबसे पहले क्या बदला, और कब?",
+            "पिछली visit की तुलना में energy, sleep, appetite, thirst, stool और mood कैसे हैं?",
+            "क्या कोई old symptom वापस आया?",
+            "Remedy के बाद कोई new symptom आया, और intensity कितनी है?",
+            "Improvement से पहले initial aggravation हुआ था?",
+        ]
+    else:
+        analysis_summary = (
+            f"Follow-up response appears {response_level}. "
+            f"Reported improvements: {len(improvement)}, worsening points: {len(worsening)}, "
+            f"new symptoms: {len(new_symptoms)}, red flags: {len(red_flags)}."
+        )
+        remedy_response_assessment = (
+            f"Response after {remedy_label} is assessed as {response_level}. "
+            "This is only a clinical progress summary and not a prescription decision."
+        )
+        suggested_follow_up_questions = [
+            "What changed first after the prescription, and when did it happen?",
+            "How are energy, sleep, appetite, thirst, stool, and mood compared with the previous visit?",
+            "Did any old symptom return, and was it milder, shorter, or in reverse order?",
+            "Did any new symptom appear after the remedy, and how intense is it?",
+            "Was there any initial aggravation before improvement?",
+        ]
 
     if red_flags:
         suggested_follow_up_questions.insert(
             0,
-            "Are the reported warning symptoms active now, severe, recurrent, or medically evaluated?",
+            "Reported warning symptoms এখন active/severe/recurrent কি, বা medically evaluated হয়েছে?"
+            if _lang_bn(language)
+            else "Are the reported warning symptoms active now, severe, recurrent, or medically evaluated?",
         )
 
     doctor_review_points = [
+        "Generals এবং mental state compare করে wait/repeat/change plan সিদ্ধান্ত নিন.",
+        "পরিবর্তন sustained নাকি temporary তা confirm করুন.",
+        "New symptoms এবং expected old symptom return আলাদাভাবে review করুন.",
+    ] if _lang_bn(language) else [
         "Compare generals and mental state before deciding whether to wait, repeat, or change plan.",
         "Confirm whether changes are sustained or only temporary.",
         "Review new symptoms separately from expected return of old symptoms.",
     ]
 
     recommended_next_steps = [
+        "প্রতিটি changed symptom এর intensity এবং duration লিখে রাখুন.",
+        "Symptom change matrix supporting notes হিসেবে ব্যবহার করুন, automatic prescription rule নয়.",
+        "Wait, repeat, potency change, remedy change, বা referral চিকিৎসক সিদ্ধান্ত নিবেন.",
+    ] if _lang_bn(language) else [
         "Document intensity and duration for each changed symptom.",
         "Use the symptom change matrix as supporting notes, not as an automatic prescription rule.",
         "Practitioner should decide wait, repeat, potency change, remedy change, or referral.",
@@ -1488,13 +1750,12 @@ def analyze_follow_up(payload: FollowUpAnalyzeRequest) -> FollowUpAnalyzeRespons
     if red_flags:
         recommended_next_steps.insert(
             0,
-            "Red flags detected: consider medical evaluation or referral where appropriate.",
+            "Red flags detected: প্রয়োজন হলে medical evaluation/referral বিবেচনা করুন."
+            if _lang_bn(language)
+            else "Red flags detected: consider medical evaluation or referral where appropriate.",
         )
 
-    safety_note = (
-        "This follow-up analysis is doctor-facing decision support only. It does not decide "
-        "repetition, potency, remedy change, or referral. Final decision must be made by the practitioner."
-    )
+    safety_note = localized_safety_note(language, "follow-up analysis")
 
     return FollowUpAnalyzeResponse(
         response_level=response_level,
@@ -1521,6 +1782,10 @@ def potency_guidance(payload: PotencyGuidanceRequest) -> PotencyGuidanceResponse
     text = _potency_text_from_case(payload)
     remedy = _dict_or_empty(payload.remedy)
     prescription_snapshot = _dict_or_empty(payload.prescription_snapshot)
+    language = resolve_response_language(
+        requested_response_language(payload.response_language, payload.settings),
+        text,
+    )
 
     phase = _infer_case_phase(text, payload.settings)
     sensitivity = _infer_sensitivity(text, payload.settings)
@@ -1541,72 +1806,188 @@ def potency_guidance(payload: PotencyGuidanceRequest) -> PotencyGuidanceResponse
         chunks=payload.knowledge_chunks,
     )
 
-    cautions: List[str] = [
-        "Final potency and repetition must be decided by the practitioner.",
-        "Do not repeat automatically while improvement is continuing.",
-        "Review sensitivity, vitality, pathology depth, and remedy certainty before potency selection.",
-    ]
+    if _lang_bn(language):
+        cautions: List[str] = [
+            "Final potency এবং repetition চিকিৎসক সিদ্ধান্ত নিবেন.",
+            "Improvement চলতে থাকলে automatic repetition করবেন না.",
+            "Potency selection এর আগে sensitivity, vitality, pathology depth এবং remedy certainty review করুন.",
+        ]
+    elif language == "hi-IN":
+        cautions = [
+            "Final potency और repetition डॉक्टर तय करेंगे.",
+            "Improvement जारी हो तो automatic repetition न करें.",
+            "Potency selection से पहले sensitivity, vitality, pathology depth और remedy certainty review करें.",
+        ]
+    else:
+        cautions = [
+            "Final potency and repetition must be decided by the practitioner.",
+            "Do not repeat automatically while improvement is continuing.",
+            "Review sensitivity, vitality, pathology depth, and remedy certainty before potency selection.",
+        ]
 
     if sensitivity == "high":
-        cautions.append("High sensitivity suspected: consider extra caution with potency and repetition.")
+        if _lang_bn(language):
+            cautions.append(
+                "High sensitivity suspected: potency এবং repetition এ extra caution বিবেচনা করুন."
+            )
+        elif language == "hi-IN":
+            cautions.append(
+                "High sensitivity suspected: potency और repetition में extra caution रखें."
+            )
+        else:
+            cautions.append(
+                "High sensitivity suspected: consider extra caution with potency and repetition."
+            )
 
     if vitality == "low":
-        cautions.append("Low vitality suspected: avoid aggressive repetition without close review.")
+        if _lang_bn(language):
+            cautions.append(
+                "Low vitality suspected: close review ছাড়া aggressive repetition এড়িয়ে চলুন."
+            )
+        elif language == "hi-IN":
+            cautions.append(
+                "Low vitality suspected: close review के बिना aggressive repetition से बचें."
+            )
+        else:
+            cautions.append(
+                "Low vitality suspected: avoid aggressive repetition without close review."
+            )
 
     if pathology in ["structural", "advanced_pathology"]:
-        cautions.append(
-            "Structural or advanced pathology suspected: coordinate medical evaluation where appropriate."
-        )
+        if _lang_bn(language):
+            cautions.append(
+                "Structural/advanced pathology suspected: প্রয়োজন হলে medical evaluation coordinate করুন."
+            )
+        elif language == "hi-IN":
+            cautions.append(
+                "Structural/advanced pathology suspected: जरूरत हो तो medical evaluation coordinate करें."
+            )
+        else:
+            cautions.append(
+                "Structural or advanced pathology suspected: coordinate medical evaluation where appropriate."
+            )
 
     if phase == "follow_up":
-        cautions.append(
-            "Follow-up case: assess direction of cure, aggravation, old symptom return, and general wellbeing before repeating."
+        if _lang_bn(language):
+            cautions.append(
+                "Follow-up case: repeat করার আগে direction of cure, aggravation, old symptom return এবং general wellbeing assess করুন."
+            )
+        elif language == "hi-IN":
+            cautions.append(
+                "Follow-up case: repeat करने से पहले direction of cure, aggravation, old symptom return, और general wellbeing assess करें."
+            )
+        else:
+            cautions.append(
+                "Follow-up case: assess direction of cure, aggravation, old symptom return, and general wellbeing before repeating."
+            )
+
+    if _lang_bn(language):
+        guidance_summary = (
+            f"{remedy_name} এর potency guidance: case phase সম্ভবত {phase}, "
+            f"vitality {vitality}, sensitivity {sensitivity}, "
+            f"এবং pathology depth {pathology}. এটি শুধু decision-support indicator."
         )
+        repetition_guidance = (
+            "Repetition fixed routine অনুযায়ী নয়, রোগীর response অনুযায়ী বিবেচনা করতে হবে. "
+            "উন্নতি পরিষ্কারভাবে চলতে থাকলে mechanical repetition এর চেয়ে wait-and-watch নিরাপদ হতে পারে."
+        )
+        wait_guidance = (
+            "Steady improvement, high sensitivity, recent aggravation followed by improvement, "
+            "বা repetition দরকার কিনা unclear হলে wait-and-watch বিশেষ গুরুত্বপূর্ণ."
+        )
+        aggravation_guidance = (
+            "Aggravation reported হলে timing, intensity, duration, general wellbeing, old symptom return, "
+            "এবং aggravation এর পরে improvement হয়েছে কিনা confirm করুন."
+        )
+        follow_up_questions = [
+            "Dose এর পরে প্রথম কী পরিবর্তন হয়েছে?",
+            "Improvement এখনও চলছে কি?",
+            "Initial aggravation হয়েছিল কি? কতক্ষণ ছিল?",
+            "Energy, sleep, appetite, mood এবং generals improve করেছে কি?",
+            "কোন old symptom ফিরে এসেছে কি?",
+            "Remedy এর পরে কোনো new symptom এসেছে কি?",
+            "অন্য কোনো medicine বা treatment ব্যবহার হয়েছে কি?",
+            "কোন red-flag symptom বা clinical deterioration আছে কি?",
+        ]
+        review_points = [
+            "Potency escalation বিবেচনার আগে remedy similarity confirm করুন.",
+            "Patient sensitivity এবং vitality review করুন.",
+            "Pathology depth এবং risk review করুন.",
+            "Repetition আদৌ দরকার কিনা review করুন.",
+            "Potency এবং repetition কেন chosen হয়েছে document করুন.",
+        ]
+    elif language == "hi-IN":
+        guidance_summary = (
+            f"{remedy_name} के लिए potency guidance: case phase {phase} लगता है, "
+            f"vitality {vitality}, sensitivity {sensitivity}, "
+            f"और pathology depth {pathology}. ये केवल decision-support indicators हैं."
+        )
+        repetition_guidance = (
+            "Repetition fixed routine से नहीं, patient response के अनुसार विचार करें. "
+            "अगर improvement साफ और जारी है, तो mechanical repetition से wait-and-watch बेहतर हो सकता है."
+        )
+        wait_guidance = (
+            "Steady improvement, high sensitivity, recent aggravation followed by improvement, "
+            "या repetition की need unclear हो तो wait-and-watch विशेष रूप से important है."
+        )
+        aggravation_guidance = (
+            "Aggravation reported हो तो timing, intensity, duration, general wellbeing, "
+            "old symptom return, और aggravation के बाद improvement हुआ या नहीं confirm करें."
+        )
+        follow_up_questions = [
+            "Dose के बाद सबसे पहले क्या बदला?",
+            "Improvement अभी भी जारी है?",
+            "Initial aggravation हुआ था? कितनी देर रहा?",
+            "Energy, sleep, appetite, mood, और generals improve हुए?",
+            "कोई old symptom वापस आया?",
+            "Remedy के बाद कोई new symptom आया?",
+            "कोई दूसरी medicine या treatment use हुआ?",
+            "कोई red-flag symptom या clinical deterioration है?",
+        ]
+        review_points = [
+            "Potency escalation से पहले remedy similarity confirm करें.",
+            "Patient sensitivity और vitality review करें.",
+            "Pathology depth और risk review करें.",
+            "Repetition सच में needed है या नहीं review करें.",
+            "Potency और repetition क्यों चुना गया, document करें.",
+        ]
+    else:
+        guidance_summary = (
+            f"Potency guidance for {remedy_name}: case phase appears {phase}, "
+            f"vitality appears {vitality}, sensitivity appears {sensitivity}, "
+            f"and pathology depth appears {pathology}. These are decision-support indicators only."
+        )
+        repetition_guidance = (
+            "Repetition should be based on the patient response, not a fixed routine. "
+            "If improvement is clear and continuing, wait-and-watch is usually safer than mechanical repetition."
+        )
+        wait_guidance = (
+            "Wait-and-watch is especially important when there is steady improvement, high sensitivity, "
+            "recent aggravation followed by improvement, or unclear need for repetition."
+        )
+        aggravation_guidance = (
+            "If aggravation is reported, confirm timing, intensity, duration, general wellbeing, "
+            "return of old symptoms, and whether the aggravation is followed by improvement."
+        )
+        follow_up_questions = [
+            "What changed first after the dose?",
+            "Is improvement still continuing?",
+            "Was there any initial aggravation? How long did it last?",
+            "Did energy, sleep, appetite, mood, and generals improve?",
+            "Did any old symptom return?",
+            "Are there any new symptoms after the remedy?",
+            "Was any other medicine or treatment used?",
+            "Any red-flag symptom or clinical deterioration?",
+        ]
+        review_points = [
+            "Confirm remedy similarity before considering potency escalation.",
+            "Review patient sensitivity and vitality.",
+            "Review pathology depth and risk.",
+            "Review whether repetition is needed at all.",
+            "Document why potency and repetition were chosen.",
+        ]
 
-    guidance_summary = (
-        f"Potency guidance for {remedy_name}: case phase appears {phase}, "
-        f"vitality appears {vitality}, sensitivity appears {sensitivity}, "
-        f"and pathology depth appears {pathology}. These are decision-support indicators only."
-    )
-
-    repetition_guidance = (
-        "Repetition should be based on the patient response, not a fixed routine. "
-        "If improvement is clear and continuing, wait-and-watch is usually safer than mechanical repetition."
-    )
-
-    wait_guidance = (
-        "Wait-and-watch is especially important when there is steady improvement, high sensitivity, "
-        "recent aggravation followed by improvement, or unclear need for repetition."
-    )
-
-    aggravation_guidance = (
-        "If aggravation is reported, confirm timing, intensity, duration, general wellbeing, "
-        "return of old symptoms, and whether the aggravation is followed by improvement."
-    )
-
-    follow_up_questions = [
-        "What changed first after the dose?",
-        "Is improvement still continuing?",
-        "Was there any initial aggravation? How long did it last?",
-        "Did energy, sleep, appetite, mood, and generals improve?",
-        "Did any old symptom return?",
-        "Are there any new symptoms after the remedy?",
-        "Was any other medicine or treatment used?",
-        "Any red-flag symptom or clinical deterioration?",
-    ]
-
-    review_points = [
-        "Confirm remedy similarity before considering potency escalation.",
-        "Review patient sensitivity and vitality.",
-        "Review pathology depth and risk.",
-        "Review whether repetition is needed at all.",
-        "Document why potency and repetition were chosen.",
-    ]
-
-    safety_note = (
-        "This is doctor-facing potency guidance only. It is not an automatic potency prescription. "
-        "Final potency, repetition, wait-and-watch, remedy change, and referral decisions must be made by the practitioner."
-    )
+    safety_note = localized_safety_note(language, "potency guidance")
 
     return PotencyGuidanceResponse(
         case_phase=phase,
@@ -1702,6 +2083,16 @@ def remedy_suggest(payload: RemedySuggestRequest) -> RemedySuggestResponse:
     knowledge_chunks = payload.knowledge_chunks
     red_flags = payload.case_snapshot.get("red_flags") or []
     missing_questions = payload.case_snapshot.get("missing_questions") or []
+    response_language = requested_response_language(
+        payload.response_language,
+        payload.settings,
+    )
+    language = resolve_response_language(
+        response_language,
+        str(payload.case_snapshot.get("raw_case_text") or ""),
+        str(payload.case_snapshot.get("chief_complaint") or ""),
+        str(payload.case_snapshot.get("case_summary") or ""),
+    )
     method = payload.repertorization_run.get("method", "selected")
     suggestions: List[RemedySuggestItem] = []
 
@@ -1725,11 +2116,24 @@ def remedy_suggest(payload: RemedySuggestRequest) -> RemedySuggestResponse:
 
         remedy_name = candidate.get("remedy_name") or "Unknown remedy"
         remedy_code = candidate.get("remedy_code")
-        summary = (
-            f"{remedy_name} appears as rank {rank} in the {method} repertorization result. "
-            "It should be considered only as a doctor-reviewed possibility, supported by "
-            "rubric coverage and retrieved knowledge evidence."
-        )
+        if _lang_bn(language):
+            summary = (
+                f"{remedy_name} {method} repertorization result এ rank {rank} হিসেবে এসেছে. "
+                "Rubric coverage এবং retrieved knowledge evidence দিয়ে support থাকলেও "
+                "এটি শুধু doctor-reviewed possibility."
+            )
+        elif language == "hi-IN":
+            summary = (
+                f"{remedy_name} {method} repertorization result में rank {rank} पर है. "
+                "Rubric coverage और retrieved knowledge evidence support करते हैं, "
+                "लेकिन यह केवल doctor-reviewed possibility है."
+            )
+        else:
+            summary = (
+                f"{remedy_name} appears as rank {rank} in the {method} repertorization result. "
+                "It should be considered only as a doctor-reviewed possibility, supported by "
+                "rubric coverage and retrieved knowledge evidence."
+            )
 
         suggestions.append(
             RemedySuggestItem(
@@ -1769,14 +2173,14 @@ def remedy_suggest(payload: RemedySuggestRequest) -> RemedySuggestResponse:
             )
         )
 
-    safety_note = (
-        "This is a doctor-facing decision-support suggestion. It is not an automatic "
-        "prescription. Final remedy, potency, repetition, and follow-up must be decided "
-        "by the practitioner."
-    )
+    safety_note = localized_safety_note(language, "remedy suggestion")
 
     if red_flags:
-        safety_note += " Red flags detected: " + "; ".join([str(flag) for flag in red_flags[:5]])
+        safety_note += (
+            " Red flags detected: " + "; ".join([str(flag) for flag in red_flags[:5]])
+            if not _lang_bn(language)
+            else " Red flags পাওয়া গেছে: " + "; ".join([str(flag) for flag in red_flags[:5]])
+        )
 
     return RemedySuggestResponse(
         safety_note=safety_note,

@@ -100,6 +100,7 @@ class FollowUpAnalysisTest extends TestCase
         $this->postJson("/api/patients/{$patient->id}/visits/{$currentVisit->id}/follow-up-analyses/generate", [
             'previous_visit_id' => $previousVisit->id,
             'prescription_id' => $prescription->id,
+            'response_language' => 'hi-IN',
         ])
             ->assertCreated()
             ->assertJsonPath('data.response_level', 'improved')
@@ -124,7 +125,8 @@ class FollowUpAnalysisTest extends TestCase
             'action' => 'generated_follow_up_analysis',
         ]);
 
-        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/follow-up/analyze'));
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/follow-up/analyze')
+            && $request->data()['response_language'] === 'hi-IN');
     }
 
     public function test_follow_up_analysis_requires_previous_visit(): void
