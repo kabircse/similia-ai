@@ -2503,22 +2503,6 @@ export type DoctorReviewQueueResponse = {
   };
 };
 
-export type DoctorReviewQueueSummary = {
-  open_count: number;
-  in_review_count: number;
-  urgent_count: number;
-  portal_submission_count: number;
-  latest_open: Array<{
-    id: number;
-    title: string;
-    priority: string;
-    status: string;
-    patient_name: string | null;
-    action_url: string | null;
-    created_at: string | null;
-  }>;
-};
-
 export type PublicFollowUpInvitation = {
   public_id: string;
   purpose: string;
@@ -2711,12 +2695,6 @@ export async function getDoctorReviewQueue(input?: {
   });
 
   return response.data;
-}
-
-export async function getDoctorReviewQueueSummary(): Promise<DoctorReviewQueueSummary> {
-  const response = await api.get("/api/doctor-review-queue/summary");
-
-  return response.data.data;
 }
 
 export async function updateDoctorReviewQueueItem(

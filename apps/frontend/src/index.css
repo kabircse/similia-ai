@@ -404,40 +404,6 @@ button:disabled {
   font-weight: 800;
 }
 
-.review-queue-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: #102018;
-  border: 1px solid #d7dfd8;
-  background: #ffffff;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.review-queue-badge:hover,
-.review-queue-badge:focus-visible {
-  background: #f4f6f2;
-}
-
-.review-queue-badge strong {
-  min-width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  background: #145c43;
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-}
-
-.review-queue-badge strong.urgent {
-  background: #b42318;
-}
-
 .user-meta {
   display: grid;
   text-align: right;
@@ -4716,15 +4682,5 @@ button:disabled {
 
   .review-queue-filter-panel {
     display: grid;
-  }
-}
-
-@media (max-width: 720px) {
-  .review-queue-badge span {
-    display: none;
-  }
-
-  .review-queue-badge {
-    padding: 8px;
   }
 }

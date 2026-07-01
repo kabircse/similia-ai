@@ -19,7 +19,6 @@ import { getMe, logout } from "../../lib/api";
 import { hasPermission } from "../../lib/permissions";
 import type { Permission } from "../../lib/api";
 import { NotificationBell } from "../notifications/NotificationBell";
-import { ReviewQueueBadge } from "../review-queue/ReviewQueueBadge";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -171,7 +170,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           <div className="user-menu">
-            {hasPermission(permissions, "manage_visits") && <ReviewQueueBadge />}
             <NotificationBell />
 
             <div className="user-meta">
