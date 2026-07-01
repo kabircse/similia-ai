@@ -11,6 +11,8 @@ import { VisitDetailPage } from "./pages/VisitDetailPage";
 import { ActivityLogPage } from "./pages/ActivityLogPage";
 import { ClinicSettingsPage } from "./pages/ClinicSettingsPage";
 import { ClinicalDashboardPage } from "./pages/ClinicalDashboardPage";
+import { ClinicReportPrintPage } from "./pages/ClinicReportPrintPage";
+import { ClinicReportsPage } from "./pages/ClinicReportsPage";
 import { CaseSheetPrintPage } from "./pages/print/CaseSheetPrintPage";
 import { PatientHandoutPrintPage } from "./pages/print/PatientHandoutPrintPage";
 import { PrescriptionPrintPage } from "./pages/print/PrescriptionPrintPage";
@@ -53,6 +55,15 @@ function App() {
         element={
           <ProtectedLayout>
             <ClinicalDashboardPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/clinic-reports"
+        element={
+          <ProtectedLayout>
+            <ClinicReportsPage />
           </ProtectedLayout>
         }
       />
@@ -167,6 +178,15 @@ function App() {
         element={
           <ProtectedRoute>
             <PatientHandoutPrintPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/clinic-reports/:reportId/print"
+        element={
+          <ProtectedRoute>
+            <ClinicReportPrintPage />
           </ProtectedRoute>
         }
       />

@@ -42,6 +42,12 @@ const navItems: Array<{
     permission: "view_dashboard",
   },
   {
+    label: "Clinic Reports",
+    path: "/clinic-reports",
+    icon: FileText,
+    permission: "view_activity_logs",
+  },
+  {
     label: "Patients",
     path: "/patients",
     icon: Users,

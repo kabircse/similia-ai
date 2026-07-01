@@ -250,6 +250,120 @@ export async function getClinicalDashboard(input?: {
   return response.data.data;
 }
 
+export type ClinicReportSection = {
+  id: number;
+  clinic_report_run_id: number;
+  section_key: string;
+  category: string;
+  sort_order: number;
+  title: string;
+  content: string;
+  metrics: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicReportRun = {
+  id: number;
+  created_by_id: number;
+  scope_doctor_id: number | null;
+  report_type: "monthly" | "custom_period" | "yearly";
+  status: string;
+  response_language: AiResponseLanguage | string;
+  resolved_language: string | null;
+  period_start: string;
+  period_end: string;
+  title: string | null;
+  executive_summary: string | null;
+  clinical_activity_summary: string | null;
+  outcome_summary: string | null;
+  remedy_summary: string | null;
+  safety_summary: string | null;
+  finance_summary: string | null;
+  follow_up_summary: string | null;
+  key_metrics: Record<string, unknown>;
+  dashboard_snapshot: Record<string, unknown>;
+  recommendations: string[];
+  limitations: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  exported_at: string | null;
+  printed_at: string | null;
+  metadata: Record<string, unknown>;
+  sections: ClinicReportSection[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClinicReportResponse = {
+  data: ClinicReportRun[];
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export async function getClinicReports(): Promise<ClinicReportResponse> {
+  const response = await api.get("/api/clinic-reports", {
+    params: {
+      per_page: 10,
+    },
+  });
+
+  return response.data;
+}
+
+export async function getClinicReport(
+  reportId: string | number
+): Promise<ClinicReportRun> {
+  const response = await api.get(`/api/clinic-reports/${reportId}`);
+
+  return response.data.data;
+}
+
+export async function generateClinicReport(input?: {
+  report_type?: "monthly" | "custom_period" | "yearly";
+  period?: "this_month" | "last_month" | "this_year" | "custom";
+  date_from?: string | null;
+  date_to?: string | null;
+  doctor_id?: number | null;
+  response_language?: AiResponseLanguage | string;
+  include_finance?: boolean;
+  include_safety?: boolean;
+  include_follow_ups?: boolean;
+  include_recommendations?: boolean;
+}): Promise<ClinicReportRun> {
+  const response = await api.post("/api/clinic-reports/generate", {
+    report_type: input?.report_type ?? "monthly",
+    period: input?.period ?? "last_month",
+    date_from: input?.date_from ?? null,
+    date_to: input?.date_to ?? null,
+    doctor_id: input?.doctor_id ?? null,
+    response_language: input?.response_language ?? "auto",
+    include_finance: input?.include_finance ?? true,
+    include_safety: input?.include_safety ?? true,
+    include_follow_ups: input?.include_follow_ups ?? true,
+    include_recommendations: input?.include_recommendations ?? true,
+  });
+
+  return response.data.data;
+}
+
+export function clinicReportCsvUrl(reportId: string | number): string {
+  return `${api.defaults.baseURL}/api/clinic-reports/${reportId}/export.csv`;
+}
+
+export async function markClinicReportPrinted(
+  reportId: string | number
+): Promise<ClinicReportRun> {
+  const response = await api.post(`/api/clinic-reports/${reportId}/printed`);
+
+  return response.data.data;
+}
+
 export type AiTask = {
   id: number;
   user_id: number;
