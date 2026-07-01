@@ -22,6 +22,7 @@ import { PrescriptionReviewPanel } from "../components/prescriptions/Prescriptio
 import { PatientHandoutPanel } from "../components/patient-handouts/PatientHandoutPanel";
 import { PatientPortalPanel } from "../components/patient-portal/PatientPortalPanel";
 import { VisitAppointmentPanel } from "../components/appointments/VisitAppointmentPanel";
+import { WhatsAppMessageComposer } from "../components/whatsapp/WhatsAppMessageComposer";
 import { FeeRecordPanel } from "../components/fees/FeeRecordPanel";
 import { VoiceCaseTakingPanel } from "../components/voice/VoiceCaseTakingPanel";
 import { MissingQuestionConversationPanel } from "../components/case-taking/MissingQuestionConversationPanel";
@@ -288,6 +289,10 @@ export function VisitDetailPage() {
 
       {patientId && visitId && (
         <VisitAppointmentPanel patientId={patientId} visitId={visitId} />
+      )}
+
+      {patientId && (
+        <WhatsAppMessageComposer patientId={patientId} />
       )}
 
       {patientId && visitId && (

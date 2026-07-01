@@ -7,6 +7,7 @@ import {
   updateAppointmentStatus,
 } from "../lib/api";
 import type { ClinicAppointment } from "../lib/api";
+import { WhatsAppMessageComposer } from "../components/whatsapp/WhatsAppMessageComposer";
 
 export function AppointmentsPage() {
   const [status, setStatus] = useState("");
@@ -147,6 +148,14 @@ function AppointmentRow({ appointment }: { appointment: ClinicAppointment }) {
         >
           No Show
         </button>
+      </div>
+
+      <div className="appointment-whatsapp-slot">
+        <WhatsAppMessageComposer
+          compact
+          patientId={appointment.patient_id}
+          appointmentId={appointment.id}
+        />
       </div>
     </article>
   );
