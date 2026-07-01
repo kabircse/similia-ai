@@ -165,6 +165,44 @@ class RemedyRelationshipResponse(BaseModel):
     safety_note: str
 
 
+class PrescriptionReviewRequest(BaseModel):
+    case_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    prescription_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    remedy_suggestion_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    potency_guidance_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    relationship_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    follow_up_snapshot: Dict[str, Any] = Field(default_factory=dict)
+    response_language: str = "auto"
+
+
+class PrescriptionReviewCheckModel(BaseModel):
+    check_key: str
+    category: str = "general"
+    severity: str = "normal"
+    status: str = "pending"
+    is_required: bool = True
+    is_blocking: bool = False
+    title: str
+    description: Optional[str] = None
+    ai_assessment: Optional[str] = None
+    evidence: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class PrescriptionReviewResponse(BaseModel):
+    review_status: str = "needs_doctor_review"
+    safety_score: float = 0
+    review_summary: str
+    decision_guidance: str
+    risk_summary: str
+    red_flags: List[str] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+    doctor_review_points: List[str] = Field(default_factory=list)
+    recommended_actions: List[str] = Field(default_factory=list)
+    checks: List[PrescriptionReviewCheckModel] = Field(default_factory=list)
+    safety_note: str
+
+
 class MissingQuestionConversationStartRequest(BaseModel):
     language: str = "bn-BD"
     response_language: str = "auto"
@@ -668,6 +706,71 @@ def _relationship_text_from_payload(payload: RemedyRelationshipRequest) -> str:
             str(payload.follow_up_snapshot.get("analysis_summary") or ""),
             chunks_text,
         ]
+    )
+
+
+def _prescription_review_text(payload: PrescriptionReviewRequest) -> str:
+    parts: List[str] = []
+
+    for source in [
+        payload.case_snapshot,
+        payload.prescription_snapshot,
+        payload.remedy_suggestion_snapshot,
+        payload.potency_guidance_snapshot,
+        payload.relationship_snapshot,
+        payload.follow_up_snapshot,
+    ]:
+        parts.append(str(source))
+
+    return "\n".join(parts)
+
+
+def _prescription_review_safety_note(language: str) -> str:
+    if _lang_bn(language):
+        return (
+            "এটি চিকিৎসকের জন্য prescription decision safety checklist মাত্র। "
+            "AI prescription finalize করে না। Doctor checklist confirm করে final decision নিবেন."
+        )
+
+    if language == "hi-IN":
+        return (
+            "यह doctor-facing prescription decision safety checklist है। "
+            "AI prescription finalize नहीं करता। Doctor checklist confirm करके final decision लेंगे."
+        )
+
+    return (
+        "This is a doctor-facing prescription decision safety checklist only. "
+        "AI does not finalize the prescription. The practitioner confirms the checklist and makes the final decision."
+    )
+
+
+def _has_snapshot(snapshot: Dict[str, Any]) -> bool:
+    return any(value not in [None, "", [], {}] for value in snapshot.values())
+
+
+def _review_check(
+    check_key: str,
+    category: str,
+    severity: str,
+    status: str,
+    title: str,
+    description: str,
+    ai_assessment: str,
+    evidence: Optional[List[str]] = None,
+    is_required: bool = True,
+    is_blocking: bool = False,
+) -> PrescriptionReviewCheckModel:
+    return PrescriptionReviewCheckModel(
+        check_key=check_key,
+        category=category,
+        severity=severity,
+        status=status,
+        is_required=is_required,
+        is_blocking=is_blocking,
+        title=title,
+        description=description,
+        ai_assessment=ai_assessment,
+        evidence=evidence or [],
     )
 
 
@@ -2230,6 +2333,313 @@ def compare_materia_medica(payload: MateriaMedicaCompareRequest):
             engine="local_materia_medica_rag_v1",
         )
     }
+
+
+@app.post("/prescription/review", response_model=PrescriptionReviewResponse)
+def prescription_review(
+    payload: PrescriptionReviewRequest,
+) -> PrescriptionReviewResponse:
+    prescription = payload.prescription_snapshot
+    case_snapshot = payload.case_snapshot
+    remedy_suggestion = payload.remedy_suggestion_snapshot
+    potency_guidance = payload.potency_guidance_snapshot
+    relationship = payload.relationship_snapshot
+    follow_up = payload.follow_up_snapshot
+    language = resolve_response_language(
+        payload.response_language,
+        _prescription_review_text(payload),
+    )
+
+    remedy_name = str(prescription.get("remedy_name") or "selected remedy")
+    potency = str(prescription.get("potency") or "")
+    repetition = str(prescription.get("repetition") or "")
+    dose_instruction = str(prescription.get("dose_instruction") or "")
+    reason = str(prescription.get("reason") or "")
+    follow_up_date = str(prescription.get("follow_up_date") or "")
+
+    red_flags = [
+        str(item)
+        for item in (case_snapshot.get("red_flags") or [])
+        if str(item).strip()
+    ]
+    red_flags += [
+        str(item)
+        for item in (follow_up.get("red_flags") or [])
+        if str(item).strip()
+    ]
+    red_flags = list(dict.fromkeys(red_flags))
+
+    missing_information: List[str] = []
+
+    if not str(prescription.get("remedy_name") or "").strip():
+        missing_information.append("Remedy name is missing.")
+
+    if not potency.strip():
+        missing_information.append("Potency is missing.")
+
+    if not repetition.strip():
+        missing_information.append("Repetition instruction is missing or unclear.")
+
+    if not dose_instruction.strip():
+        missing_information.append("Dose instruction is missing.")
+
+    if not reason.strip():
+        missing_information.append("Reason for remedy selection is not documented.")
+
+    if not follow_up_date.strip():
+        missing_information.append("Follow-up date is not documented.")
+
+    for question in (case_snapshot.get("missing_questions") or [])[:5]:
+        missing_information.append(f"Case question still open: {question}")
+
+    has_remedy_evidence = _has_snapshot(remedy_suggestion)
+    has_potency_guidance = _has_snapshot(potency_guidance)
+    has_relationship = _has_snapshot(relationship)
+    has_follow_up = _has_snapshot(follow_up)
+    fatal_missing = not str(prescription.get("remedy_name") or "").strip() or not potency.strip()
+
+    score = 100
+    score -= min(35, len(red_flags) * 18)
+    score -= min(35, len(missing_information) * 7)
+
+    if not has_remedy_evidence:
+        score -= 8
+
+    if not has_potency_guidance:
+        score -= 8
+
+    if not has_relationship:
+        score -= 4
+
+    if not has_follow_up and str(case_snapshot.get("visit_type") or "") == "follow_up":
+        score -= 8
+
+    safety_score = max(0, min(100, score))
+
+    if fatal_missing:
+        review_status = "blocked"
+    elif red_flags:
+        review_status = "safety_warning"
+    elif missing_information:
+        review_status = "incomplete"
+    else:
+        review_status = "needs_doctor_review"
+
+    if _lang_bn(language):
+        review_summary = (
+            f"{remedy_name} {potency}".strip()
+            + " prescription decision review তৈরি হয়েছে. "
+            "AI safety, completeness, potency, repetition এবং relationship checkpoints সাজিয়েছে."
+        )
+        decision_guidance = (
+            "সব required checklist item doctor confirm/override না করা পর্যন্ত prescription final করবেন না."
+        )
+        risk_summary = (
+            f"Red flags: {len(red_flags)}, missing information: {len(missing_information)}, "
+            f"safety score: {round(safety_score)}."
+        )
+        doctor_review_points = [
+            "Current totality কি remedy selection support করছে?",
+            "Potency এবং repetition কি sensitivity/vitality/pathology অনুযায়ী review করা হয়েছে?",
+            "Relationship বা antidote/inimical caution থাকলে তা clinical context এ review করুন.",
+            "Patient instructions, warning signs এবং follow-up plan পরিষ্কার আছে কি?",
+        ]
+        recommended_actions = [
+            "প্রতিটি checklist item doctor confirm করুন.",
+            "Missing information থাকলে prescription final করার আগে update করুন.",
+            "Red flag থাকলে medical evaluation/referral প্রয়োজন কিনা বিবেচনা করুন.",
+        ]
+    elif language == "hi-IN":
+        review_summary = (
+            f"{remedy_name} {potency}".strip()
+            + " prescription decision review तैयार है. "
+            "AI ने safety, completeness, potency, repetition और relationship checkpoints बनाए हैं."
+        )
+        decision_guidance = (
+            "सभी required checklist items doctor confirm/override किए बिना prescription final न करें."
+        )
+        risk_summary = (
+            f"Red flags: {len(red_flags)}, missing information: {len(missing_information)}, "
+            f"safety score: {round(safety_score)}."
+        )
+        doctor_review_points = [
+            "Current totality remedy selection को support करती है?",
+            "Potency और repetition sensitivity/vitality/pathology के अनुसार review हुए?",
+            "Relationship या antidote/inimical caution clinical context में review करें.",
+            "Patient instructions, warning signs और follow-up plan clear हैं?",
+        ]
+        recommended_actions = [
+            "हर checklist item doctor confirm करें.",
+            "Missing information हो तो prescription final करने से पहले update करें.",
+            "Red flag हो तो medical evaluation/referral consider करें.",
+        ]
+    else:
+        review_summary = (
+            f"Prescription decision review generated for {remedy_name} {potency}".strip()
+            + ". AI prepared safety, completeness, potency, repetition, and relationship checkpoints."
+        )
+        decision_guidance = (
+            "Do not finalize the prescription until required checklist items are confirmed or deliberately overridden by the practitioner."
+        )
+        risk_summary = (
+            f"Red flags: {len(red_flags)}, missing information: {len(missing_information)}, "
+            f"safety score: {round(safety_score)}."
+        )
+        doctor_review_points = [
+            "Does the current totality support the remedy selection?",
+            "Have potency and repetition been reviewed against sensitivity, vitality, and pathology depth?",
+            "If relationship or antidote/inimical cautions exist, review them in clinical context.",
+            "Are patient instructions, warning signs, and follow-up plan clear?",
+        ]
+        recommended_actions = [
+            "Confirm each checklist item as the practitioner.",
+            "Update missing information before finalizing the prescription.",
+            "If red flags exist, consider medical evaluation or referral where appropriate.",
+        ]
+
+    checks = [
+        _review_check(
+            check_key="red_flags_reviewed",
+            category="safety",
+            severity="critical" if red_flags else "important",
+            status="warning" if red_flags else "passed",
+            is_blocking=bool(red_flags),
+            title="Red flags reviewed",
+            description="Review urgent or medically concerning symptoms before final prescription.",
+            ai_assessment=(
+                "Red flags require practitioner review."
+                if red_flags
+                else "No active red flags were found in the available snapshot."
+            ),
+            evidence=red_flags,
+        ),
+        _review_check(
+            check_key="missing_information_reviewed",
+            category="case_completeness",
+            severity="warning" if missing_information else "normal",
+            status="warning" if missing_information else "passed",
+            title="Missing information reviewed",
+            description="Check unresolved case questions and incomplete prescription fields.",
+            ai_assessment=(
+                "Missing information should be resolved or knowingly accepted before finalizing."
+                if missing_information
+                else "No missing prescription-critical information was detected."
+            ),
+            evidence=missing_information,
+        ),
+        _review_check(
+            check_key="remedy_evidence_reviewed",
+            category="remedy",
+            severity="important",
+            status="pending",
+            title="Remedy evidence reviewed by doctor",
+            description="Confirm repertory, materia medica, and case-totality support for the remedy.",
+            ai_assessment=(
+                "A remedy suggestion snapshot is available for review."
+                if has_remedy_evidence
+                else "No remedy suggestion snapshot was available; doctor must confirm remedy evidence manually."
+            ),
+            evidence=[
+                str(item.get("summary") or item.get("remedy_name") or "")
+                for item in (remedy_suggestion.get("items") or [])[:3]
+                if isinstance(item, dict)
+            ],
+        ),
+        _review_check(
+            check_key="potency_reviewed",
+            category="potency",
+            severity="important" if has_potency_guidance else "warning",
+            status="pending",
+            title="Potency reviewed",
+            description="Confirm potency against case phase, vitality, sensitivity, pathology depth, and remedy certainty.",
+            ai_assessment=(
+                str(potency_guidance.get("guidance_summary") or "Potency guidance is available.")
+                if has_potency_guidance
+                else "No potency guidance snapshot was available."
+            ),
+            evidence=[
+                str(potency_guidance.get("guidance_summary") or ""),
+                *[str(item) for item in (potency_guidance.get("cautions") or [])[:3]],
+            ],
+        ),
+        _review_check(
+            check_key="repetition_reviewed",
+            category="repetition",
+            severity="important" if repetition else "warning",
+            status="pending",
+            title="Repetition reviewed",
+            description="Confirm repetition is not mechanical and matches patient response and risk.",
+            ai_assessment=(
+                f"Current repetition instruction: {repetition}."
+                if repetition
+                else "Repetition instruction is missing or unclear."
+            ),
+            evidence=[str(potency_guidance.get("repetition_guidance") or "")],
+        ),
+        _review_check(
+            check_key="relationship_reviewed",
+            category="relationship",
+            severity="important" if has_relationship else "normal",
+            status="pending",
+            is_required=False,
+            title="Relationship cautions reviewed",
+            description="Review complementary, follows-well, antidote, inimical, and sequence context when relevant.",
+            ai_assessment=(
+                str(relationship.get("relationship_summary") or "Relationship guidance is available.")
+                if has_relationship
+                else "No relationship guidance snapshot was available."
+            ),
+            evidence=[
+                str(relationship.get("relationship_summary") or ""),
+                str(relationship.get("inimical_warning") or ""),
+            ],
+        ),
+        _review_check(
+            check_key="follow_up_plan_reviewed",
+            category="follow_up",
+            severity="important" if follow_up_date else "warning",
+            status="pending",
+            title="Follow-up plan reviewed",
+            description="Confirm follow-up timing, patient instructions, and escalation guidance.",
+            ai_assessment=(
+                f"Follow-up date: {follow_up_date}."
+                if follow_up_date
+                else "Follow-up date is not documented."
+            ),
+            evidence=[
+                str(follow_up.get("analysis_summary") or ""),
+                *[str(item) for item in (follow_up.get("recommended_next_steps") or [])[:3]],
+            ],
+        ),
+        _review_check(
+            check_key="patient_instructions_reviewed",
+            category="documentation",
+            severity="important",
+            status="pending",
+            title="Patient instructions reviewed",
+            description="Confirm dose instructions, advice, warning signs, and lifestyle notes are clear enough for the patient.",
+            ai_assessment=(
+                "Dose instruction and advice are documented."
+                if dose_instruction and str(prescription.get("advice") or "").strip()
+                else "Patient-facing instruction fields need doctor review."
+            ),
+            evidence=[dose_instruction, str(prescription.get("advice") or "")],
+        ),
+    ]
+
+    return PrescriptionReviewResponse(
+        review_status=review_status,
+        safety_score=round(safety_score, 2),
+        review_summary=review_summary,
+        decision_guidance=decision_guidance,
+        risk_summary=risk_summary,
+        red_flags=red_flags,
+        missing_information=missing_information,
+        doctor_review_points=doctor_review_points,
+        recommended_actions=recommended_actions,
+        checks=checks,
+        safety_note=_prescription_review_safety_note(language),
+    )
 
 
 @app.post("/remedy/relationship", response_model=RemedyRelationshipResponse)

@@ -1679,6 +1679,148 @@ export type PatientPrescription = {
   updated_at: string | null;
 };
 
+export type PrescriptionReviewStatus =
+  | "ready"
+  | "needs_doctor_review"
+  | "safety_warning"
+  | "incomplete"
+  | "blocked"
+  | string;
+
+export type PrescriptionReviewCheckStatus =
+  | "pending"
+  | "passed"
+  | "warning"
+  | "failed"
+  | "doctor_confirmed"
+  | "doctor_overridden"
+  | string;
+
+export type PrescriptionReviewCheck = {
+  id: number;
+  prescription_review_run_id: number;
+  doctor_id: number;
+  check_key: string;
+  category: string;
+  severity: "normal" | "important" | "warning" | "critical" | string;
+  status: PrescriptionReviewCheckStatus;
+  is_required: boolean;
+  is_blocking: boolean;
+  title: string;
+  description: string | null;
+  ai_assessment: string | null;
+  doctor_note: string | null;
+  doctor_confirmed_at: string | null;
+  evidence: string[];
+  metadata: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PrescriptionReviewRun = {
+  id: number;
+  patient_id: number;
+  patient_visit_id: number;
+  doctor_id: number;
+  prescription_id: number | null;
+  remedy_id: number | null;
+  remedy_code: string | null;
+  remedy_name: string | null;
+  potency: string | null;
+  repetition: string | null;
+  status: string;
+  review_status: PrescriptionReviewStatus;
+  safety_score: string | number;
+  response_language: AiResponseLanguage | string;
+  case_snapshot: Record<string, unknown>;
+  prescription_snapshot: Record<string, unknown>;
+  remedy_suggestion_snapshot: Record<string, unknown>;
+  potency_guidance_snapshot: Record<string, unknown>;
+  relationship_snapshot: Record<string, unknown>;
+  follow_up_snapshot: Record<string, unknown>;
+  review_summary: string | null;
+  decision_guidance: string | null;
+  risk_summary: string | null;
+  red_flags: string[];
+  missing_information: string[];
+  doctor_review_points: string[];
+  recommended_actions: string[];
+  safety_note: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  checks: PrescriptionReviewCheck[];
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type PrescriptionReviewResponse = {
+  data: PrescriptionReviewRun[];
+};
+
+export async function getPrescriptionReviewRuns(
+  patientId: string | number,
+  visitId: string | number
+): Promise<PrescriptionReviewResponse> {
+  const response = await api.get(
+    `/api/patients/${patientId}/visits/${visitId}/prescription-reviews`,
+    {
+      params: {
+        per_page: 5,
+      },
+    }
+  );
+
+  return response.data;
+}
+
+export async function generatePrescriptionReview(
+  patientId: string | number,
+  visitId: string | number,
+  input?: {
+    prescription_id?: number | null;
+    include_remedy_suggestion?: boolean;
+    include_potency_guidance?: boolean;
+    include_relationship_guidance?: boolean;
+    include_follow_up_analysis?: boolean;
+    response_language?: AiResponseLanguage;
+  }
+): Promise<PrescriptionReviewRun> {
+  const response = await api.post(
+    `/api/patients/${patientId}/visits/${visitId}/prescription-reviews/generate`,
+    {
+      prescription_id: input?.prescription_id ?? null,
+      include_remedy_suggestion: input?.include_remedy_suggestion ?? true,
+      include_potency_guidance: input?.include_potency_guidance ?? true,
+      include_relationship_guidance: input?.include_relationship_guidance ?? true,
+      include_follow_up_analysis: input?.include_follow_up_analysis ?? true,
+      response_language: input?.response_language ?? "auto",
+    }
+  );
+
+  return response.data.data;
+}
+
+export async function updatePrescriptionReviewCheck(
+  patientId: string | number,
+  visitId: string | number,
+  reviewId: string | number,
+  checkId: string | number,
+  input: {
+    status: "doctor_confirmed" | "doctor_overridden" | "pending";
+    doctor_note?: string | null;
+  }
+): Promise<PrescriptionReviewRun> {
+  const response = await api.patch(
+    `/api/patients/${patientId}/visits/${visitId}/prescription-reviews/${reviewId}/checks/${checkId}`,
+    {
+      status: input.status,
+      doctor_note: input.doctor_note ?? null,
+    }
+  );
+
+  return response.data.data;
+}
+
 export type PrescriptionInput = {
   repertorization_result_id: number | null;
   source_method: PrescriptionSourceMethod;
