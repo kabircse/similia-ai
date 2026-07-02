@@ -15,6 +15,7 @@ class StorePatientRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'doctor_id' => ['nullable', 'integer', 'exists:users,id'],
             'name' => ['required', 'string', 'max:160'],
             'age_years' => ['nullable', 'integer', 'min:0', 'max:130'],
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other', 'unknown'])],

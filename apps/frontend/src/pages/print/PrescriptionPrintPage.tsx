@@ -58,9 +58,14 @@ export function PrescriptionPrintPage() {
               />
             )}
             <h1>{data.clinic.name}</h1>
-            <p>{data.clinic.tagline}</p>
+            {data.clinic.tagline && <p>{data.clinic.tagline}</p>}
             {data.clinic.address && <p>{data.clinic.address}</p>}
             {clinicContact && <p>{clinicContact}</p>}
+            {data.clinic.prescription_header && (
+              <div className="print-branding-block">
+                <p className="print-branding-header">{data.clinic.prescription_header}</p>
+              </div>
+            )}
           </div>
 
           <div className="print-doc-title">
@@ -149,6 +154,12 @@ export function PrescriptionPrintPage() {
             {data.doctor.qualification && <p>{data.doctor.qualification}</p>}
             <p>{data.doctor.email}</p>
           </div>
+
+          {data.clinic.prescription_disclaimer && (
+            <div className="print-branding-disclaimer">
+              <p>{data.clinic.prescription_disclaimer}</p>
+            </div>
+          )}
 
           <div>
             <p>Signature</p>

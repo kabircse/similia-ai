@@ -24,6 +24,10 @@ class ClinicSetting extends Model
         'medicine_fee_included',
         'prescription_footer',
         'case_sheet_footer',
+        'prescription_header',
+        'prescription_disclaimer',
+        'appointment_default_duration_minutes',
+        'appointment_default_timezone',
         'metadata',
     ];
 
@@ -31,6 +35,7 @@ class ClinicSetting extends Model
         'default_consultation_fee' => 'decimal:2',
         'default_followup_fee' => 'decimal:2',
         'medicine_fee_included' => 'boolean',
+        'appointment_default_duration_minutes' => 'integer',
         'metadata' => 'array',
     ];
 

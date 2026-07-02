@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateRemedySuggestionRequest;
 use App\Http\Resources\RemedySuggestionRunResource;
@@ -16,6 +17,8 @@ use RuntimeException;
 
 class RemedySuggestionController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -66,7 +69,7 @@ class RemedySuggestionController extends Controller
             $run = $generator->generate(
                 patient: $patient,
                 visit: $visit,
-                doctorId: $request->user()->id,
+                doctorId: $this->ownerDoctorIdForVisit($request, $visit),
                 repertorizationRunId: $validated['repertorization_run_id'] ?? null,
                 method: $validated['method'] ?? null,
                 limit: $validated['limit'] ?? 3,

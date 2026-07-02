@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ClinicAppointment;
+use App\Models\ClinicSetting;
 use App\Models\Patient;
 use App\Models\User;
 use App\Models\WhatsAppMessageTemplate;
@@ -88,6 +89,42 @@ class WhatsAppMessageTemplateTest extends TestCase
             'https://wa.me/8801711222333?text=',
             $response->json('data.whatsapp_url')
         );
+    }
+
+    public function test_render_uses_doctor_clinic_settings_for_branding_variables(): void
+    {
+        $doctor = User::factory()->create(['role' => 'doctor']);
+        $patient = Patient::factory()->create([
+            'doctor_id' => $doctor->id,
+            'name' => 'Branding Patient',
+            'phone' => '01711-222333',
+        ]);
+
+        ClinicSetting::create([
+            'doctor_id' => $doctor->id,
+            'clinic_name' => 'Dr. Brand Clinic',
+            'doctor_display_name' => 'Dr. Brand',
+            'prescription_header' => 'Dr. Brand\nHomeopath',
+            'prescription_disclaimer' => 'Follow-up advised',
+        ]);
+
+        $template = WhatsAppMessageTemplate::create([
+            'title' => 'Branding template',
+            'category' => 'general_notice',
+            'language' => 'en',
+            'body' => 'Hello {{patient_name}} from {{clinic_name}}. Dr: {{doctor_name}}. {{prescription_header}}. {{prescription_disclaimer}}',
+            'variables' => ['patient_name', 'clinic_name', 'doctor_name', 'prescription_header', 'prescription_disclaimer'],
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($doctor);
+
+        $this->postJson('/api/whatsapp/templates/render', [
+            'template_id' => $template->id,
+            'patient_id' => $patient->id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.message', 'Hello Branding Patient from Dr. Brand Clinic. Dr: Dr. Brand. Dr. Brand\nHomeopath. Follow-up advised');
     }
 
     public function test_inactive_template_cannot_be_rendered(): void

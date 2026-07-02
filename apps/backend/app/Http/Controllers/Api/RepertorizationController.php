@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RunWeightedRepertorizationRequest;
 use App\Http\Resources\RepertorizationRunResource;
@@ -16,6 +17,8 @@ use Illuminate\Http\Request;
 
 class RepertorizationController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -56,7 +59,7 @@ class RepertorizationController extends Controller
 
         $run = $engine->run(
             visit: $visit,
-            doctor: $request->user(),
+            doctor: $this->ownerDoctorForVisit($request, $visit),
             settings: $request->validated('settings') ?? []
         );
 
@@ -83,7 +86,7 @@ class RepertorizationController extends Controller
 
         $run = $engine->run(
             visit: $visit,
-            doctor: $request->user(),
+            doctor: $this->ownerDoctorForVisit($request, $visit),
             settings: $request->validated('settings') ?? []
         );
 
@@ -110,7 +113,7 @@ class RepertorizationController extends Controller
 
         $run = $engine->run(
             visit: $visit,
-            doctor: $request->user(),
+            doctor: $this->ownerDoctorForVisit($request, $visit),
             settings: $request->validated('settings') ?? []
         );
 

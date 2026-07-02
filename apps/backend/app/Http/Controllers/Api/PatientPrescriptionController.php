@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SavePatientPrescriptionRequest;
 use App\Http\Resources\PatientPrescriptionResource;
@@ -16,6 +17,8 @@ use Illuminate\Http\Request;
 
 class PatientPrescriptionController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function show(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -77,7 +80,7 @@ class PatientPrescriptionController extends Controller
         }
 
         $data['patient_id'] = $patient->id;
-        $data['doctor_id'] = $request->user()->id;
+        $data['doctor_id'] = $this->ownerDoctorIdForVisit($request, $visit);
 
         if ($data['status'] === 'final') {
             $data['finalized_at'] = $existing?->finalized_at ?? now();

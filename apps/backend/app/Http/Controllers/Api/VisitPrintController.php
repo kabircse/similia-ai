@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Models\ClinicSetting;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\RepertorizationRun;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class VisitPrintController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function caseSheet(
         Request $request,
         Patient $patient,
@@ -21,6 +25,7 @@ class VisitPrintController extends Controller
     ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
+        $ownerDoctor = $this->ownerDoctorForVisit($request, $visit);
 
         $visit->load([
             'caseRubrics.rubric',
@@ -56,8 +61,8 @@ class VisitPrintController extends Controller
                 'document_type' => 'doctor_case_sheet',
                 'generated_at' => now()->toISOString(),
 
-                'clinic' => $this->clinicInfo($request),
-                'doctor' => $this->doctorInfo($request),
+                'clinic' => $this->clinicInfo($ownerDoctor),
+                'doctor' => $this->doctorInfo($ownerDoctor),
 
                 'patient' => [
                     'id' => $patient->id,
@@ -157,6 +162,7 @@ class VisitPrintController extends Controller
     ): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
+        $ownerDoctor = $this->ownerDoctorForVisit($request, $visit);
 
         $visit->load(['prescription']);
 
@@ -176,8 +182,8 @@ class VisitPrintController extends Controller
                 'document_type' => 'patient_prescription',
                 'generated_at' => now()->toISOString(),
 
-                'clinic' => $this->clinicInfo($request),
-                'doctor' => $this->doctorInfo($request),
+                'clinic' => $this->clinicInfo($ownerDoctor),
+                'doctor' => $this->doctorInfo($ownerDoctor),
 
                 'patient' => [
                     'id' => $patient->id,
@@ -208,25 +214,27 @@ class VisitPrintController extends Controller
         ]);
     }
 
-    private function clinicInfo(Request $request): array
+    private function clinicInfo(User $doctor): array
     {
-        $user = $request->user();
-
         $setting = ClinicSetting::firstOrCreate(
             [
-                'doctor_id' => $user->id,
+                'doctor_id' => $doctor->id,
             ],
             [
                 'clinic_name' => 'Similia AI Clinic',
                 'tagline' => 'AI Clinical Workspace for Classical Homeopathy',
-                'doctor_display_name' => $user->name,
-                'email' => $user->email,
+                'doctor_display_name' => $doctor->name,
+                'email' => $doctor->email,
                 'default_currency' => 'BDT',
                 'default_consultation_fee' => 3000,
                 'default_followup_fee' => 2000,
                 'medicine_fee_included' => true,
                 'prescription_footer' => 'Please follow the doctor-approved instructions and return for follow-up as advised.',
                 'case_sheet_footer' => 'Private clinical document for practitioner use only.',
+                'prescription_header' => null,
+                'prescription_disclaimer' => null,
+                'appointment_default_duration_minutes' => 30,
+                'appointment_default_timezone' => 'Asia/Dhaka',
             ]
         );
 
@@ -240,19 +248,22 @@ class VisitPrintController extends Controller
             'logo_url' => $setting->logo_url,
             'prescription_footer' => $setting->prescription_footer,
             'case_sheet_footer' => $setting->case_sheet_footer,
+            'prescription_header' => $setting->prescription_header,
+            'prescription_disclaimer' => $setting->prescription_disclaimer,
+            'appointment_default_duration_minutes' => $setting->appointment_default_duration_minutes,
+            'appointment_default_timezone' => $setting->appointment_default_timezone,
         ];
     }
 
-    private function doctorInfo(Request $request): array
+    private function doctorInfo(User $doctor): array
     {
-        $user = $request->user();
-        $setting = ClinicSetting::where('doctor_id', $user->id)->first();
+        $setting = ClinicSetting::where('doctor_id', $doctor->id)->first();
 
         return [
-            'id' => $user->id,
-            'name' => $setting?->doctor_display_name ?: $user->name,
-            'email' => $user->email,
-            'role' => $user->role,
+            'id' => $doctor->id,
+            'name' => $setting?->doctor_display_name ?: $doctor->name,
+            'email' => $doctor->email,
+            'role' => $doctor->role,
             'qualification' => $setting?->doctor_qualification,
         ];
     }

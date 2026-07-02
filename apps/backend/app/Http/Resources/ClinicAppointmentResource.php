@@ -20,6 +20,10 @@ class ClinicAppointmentResource extends JsonResource
             'status' => $this->status,
             'scheduled_start_at' => $this->scheduled_start_at?->toISOString(),
             'scheduled_end_at' => $this->scheduled_end_at?->toISOString(),
+            'duration_minutes' => $this->metadata['duration_minutes']
+                ?? ($this->scheduled_start_at && $this->scheduled_end_at
+                    ? $this->scheduled_start_at->diffInMinutes($this->scheduled_end_at)
+                    : null),
             'timezone' => $this->timezone,
             'title' => $this->title,
             'reason' => $this->reason,

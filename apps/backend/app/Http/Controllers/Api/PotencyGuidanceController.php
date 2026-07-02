@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GeneratePotencyGuidanceRequest;
 use App\Http\Resources\PotencyGuidanceRunResource;
@@ -16,6 +17,8 @@ use RuntimeException;
 
 class PotencyGuidanceController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -69,7 +72,7 @@ class PotencyGuidanceController extends Controller
             $run = $service->generate(
                 patient: $patient,
                 visit: $visit,
-                doctorId: $request->user()->id,
+                doctorId: $this->ownerDoctorIdForVisit($request, $visit),
                 prescriptionId: $validated['prescription_id'] ?? null,
                 remedyId: $validated['remedy_id'] ?? null,
                 remedyName: $validated['remedy_name'] ?? null,

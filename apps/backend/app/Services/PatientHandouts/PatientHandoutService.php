@@ -247,6 +247,10 @@ class PatientHandoutService
                 'medicine_fee_included' => true,
                 'prescription_footer' => 'Please follow the doctor-approved instructions and return for follow-up as advised.',
                 'case_sheet_footer' => 'Private clinical document for practitioner use only.',
+                'prescription_header' => null,
+                'prescription_disclaimer' => null,
+                'appointment_default_duration_minutes' => 30,
+                'appointment_default_timezone' => 'Asia/Dhaka',
             ]
         );
 
@@ -262,6 +266,10 @@ class PatientHandoutService
             'address' => $setting->address,
             'logo_url' => $setting->logo_url,
             'prescription_footer' => $setting->prescription_footer,
+            'prescription_header' => $setting->prescription_header,
+            'prescription_disclaimer' => $setting->prescription_disclaimer,
+            'appointment_default_duration_minutes' => $setting->appointment_default_duration_minutes,
+            'appointment_default_timezone' => $setting->appointment_default_timezone,
         ];
     }
 

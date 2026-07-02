@@ -530,6 +530,10 @@ export type ClinicSetting = {
 
   prescription_footer: string | null;
   case_sheet_footer: string | null;
+  prescription_header: string | null;
+  prescription_disclaimer: string | null;
+  appointment_default_duration_minutes: number | null;
+  appointment_default_timezone: string | null;
 
   created_at: string | null;
   updated_at: string | null;
@@ -555,6 +559,10 @@ export type ClinicSettingInput = {
 
   prescription_footer: string;
   case_sheet_footer: string;
+  prescription_header: string;
+  prescription_disclaimer: string;
+  appointment_default_duration_minutes: string;
+  appointment_default_timezone: string;
 };
 
 export async function getClinicSettings(): Promise<ClinicSetting> {
@@ -584,6 +592,13 @@ export async function updateClinicSettings(
       input.default_followup_fee === "" ? 0 : Number(input.default_followup_fee),
     prescription_footer: input.prescription_footer || null,
     case_sheet_footer: input.case_sheet_footer || null,
+    prescription_header: input.prescription_header || null,
+    prescription_disclaimer: input.prescription_disclaimer || null,
+    appointment_default_duration_minutes:
+      input.appointment_default_duration_minutes === ""
+        ? null
+        : Number(input.appointment_default_duration_minutes),
+    appointment_default_timezone: input.appointment_default_timezone || null,
   });
 
   return response.data.data;
@@ -3079,6 +3094,8 @@ export type PrintClinic = {
   logo_url?: string | null;
   prescription_footer?: string | null;
   case_sheet_footer?: string | null;
+  prescription_header?: string | null;
+  prescription_disclaimer?: string | null;
 };
 
 export type PrintVisit = {
