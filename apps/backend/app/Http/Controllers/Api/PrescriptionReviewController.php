@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GeneratePrescriptionReviewRequest;
 use App\Http\Requests\UpdatePrescriptionReviewCheckRequest;
@@ -18,6 +19,8 @@ use RuntimeException;
 
 class PrescriptionReviewController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -61,7 +64,7 @@ class PrescriptionReviewController extends Controller
             $run = $service->generate(
                 patient: $patient,
                 visit: $visit,
-                doctorId: $request->user()->id,
+                doctorId: $this->ownerDoctorIdForVisit($request, $visit),
                 prescriptionId: $validated['prescription_id'] ?? null,
                 includeRemedySuggestion: $request->boolean('include_remedy_suggestion', true),
                 includePotencyGuidance: $request->boolean('include_potency_guidance', true),
@@ -119,7 +122,7 @@ class PrescriptionReviewController extends Controller
         $run = $service->updateCheck(
             run: $prescriptionReviewRun,
             check: $prescriptionReviewCheck,
-            doctorId: $request->user()->id,
+            doctorId: $this->ownerDoctorIdForVisit($request, $visit),
             status: $validated['status'],
             doctorNote: $validated['doctor_note'] ?? null
         );

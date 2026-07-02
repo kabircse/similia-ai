@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateRemedyRelationshipRequest;
 use App\Http\Resources\RemedyRelationshipRunResource;
@@ -16,6 +17,8 @@ use RuntimeException;
 
 class RemedyRelationshipController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -59,7 +62,7 @@ class RemedyRelationshipController extends Controller
             $run = $service->generate(
                 patient: $patient,
                 visit: $visit,
-                doctorId: $request->user()->id,
+                doctorId: $this->ownerDoctorIdForVisit($request, $visit),
                 primaryRemedyId: $validated['primary_remedy_id'] ?? null,
                 primaryRemedyCode: $validated['primary_remedy_code'] ?? null,
                 primaryRemedyName: $validated['primary_remedy_name'] ?? null,

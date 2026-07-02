@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePatientVisitRequest;
 use App\Http\Requests\UpdatePatientVisitRequest;
@@ -14,6 +15,8 @@ use Illuminate\Http\Request;
 
 class PatientVisitController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient)
     {
         $this->ensureCanAccessPatient($request, $patient);
@@ -37,7 +40,7 @@ class PatientVisitController extends Controller
         $visit = PatientVisit::create([
             ...$request->validated(),
             'patient_id' => $patient->id,
-            'doctor_id' => $request->user()->id,
+            'doctor_id' => $this->ownerDoctorIdForPatient($request, $patient),
             'case_sections' => $request->validated('case_sections') ?? [],
             'missing_questions' => [],
             'red_flags' => [],

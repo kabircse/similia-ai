@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ClinicAppointment;
 use App\Models\ClinicAppointmentReminder;
+use App\Models\ClinicSetting;
 use App\Models\Patient;
 use App\Models\PatientVisit;
 use App\Models\User;
@@ -52,6 +53,37 @@ class ClinicAppointmentTest extends TestCase
         ]);
 
         $this->assertDatabaseCount('clinic_appointment_reminders', 2);
+    }
+
+    public function test_doctor_appointment_defaults_come_from_clinic_settings(): void
+    {
+        $doctor = User::factory()->create(['role' => 'doctor']);
+        $patient = Patient::factory()->create(['doctor_id' => $doctor->id]);
+        $visit = PatientVisit::factory()->create([
+            'patient_id' => $patient->id,
+            'doctor_id' => $doctor->id,
+        ]);
+
+        ClinicSetting::create([
+            'doctor_id' => $doctor->id,
+            'clinic_name' => 'Dr. Test Clinic',
+            'doctor_display_name' => 'Dr. Test',
+            'appointment_default_duration_minutes' => 45,
+            'appointment_default_timezone' => 'Asia/Tokyo',
+        ]);
+
+        $this->actingAs($doctor);
+
+        $this->postJson("/api/patients/{$patient->id}/visits/{$visit->id}/appointments", [
+            'patient_id' => $patient->id,
+            'patient_visit_id' => $visit->id,
+            'appointment_type' => 'follow_up',
+            'scheduled_start_at' => now()->addDays(3)->toISOString(),
+            'contact_method' => 'phone',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.duration_minutes', 45)
+            ->assertJsonPath('data.timezone', 'Asia/Tokyo');
     }
 
     public function test_doctor_can_update_appointment_status(): void

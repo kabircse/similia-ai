@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SaveVoiceTranscriptRequest;
 use App\Http\Resources\VoiceTranscriptResource;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class VoiceTranscriptController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -52,7 +55,7 @@ class VoiceTranscriptController extends Controller
             $transcript = VoiceTranscript::create([
                 'patient_id' => $patient->id,
                 'patient_visit_id' => $visit->id,
-                'doctor_id' => $request->user()->id,
+                'doctor_id' => $this->ownerDoctorIdForVisit($request, $visit),
 
                 'language' => $data['language'],
                 'source' => 'browser_speech_recognition',

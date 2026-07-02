@@ -21,6 +21,10 @@ function inputFromSettings(settings: ClinicSetting): ClinicSettingInput {
     medicine_fee_included: Boolean(settings.medicine_fee_included),
     prescription_footer: settings.prescription_footer ?? "",
     case_sheet_footer: settings.case_sheet_footer ?? "",
+    prescription_header: settings.prescription_header ?? "",
+    prescription_disclaimer: settings.prescription_disclaimer ?? "",
+    appointment_default_duration_minutes: settings.appointment_default_duration_minutes?.toString() ?? "",
+    appointment_default_timezone: settings.appointment_default_timezone ?? "",
   };
 }
 
@@ -200,6 +204,49 @@ function ClinicSettingsForm({ initialForm }: { initialForm: ClinicSettingInput }
           rows={3}
           value={form.case_sheet_footer}
           onChange={(event) => updateField("case_sheet_footer", event.target.value)}
+        />
+      </label>
+
+      <label className="full-field">
+        Prescription Header
+        <textarea
+          rows={3}
+          value={form.prescription_header}
+          onChange={(event) => updateField("prescription_header", event.target.value)}
+          placeholder="Clinic name, doctor name, qualifications"
+        />
+      </label>
+
+      <label className="full-field">
+        Prescription Disclaimer
+        <textarea
+          rows={3}
+          value={form.prescription_disclaimer}
+          onChange={(event) => updateField("prescription_disclaimer", event.target.value)}
+          placeholder="Use this text to guide patients on follow-up and safety"
+        />
+      </label>
+
+      <label>
+        Default Appointment Duration (minutes)
+        <input
+          type="number"
+          min="0"
+          value={form.appointment_default_duration_minutes}
+          onChange={(event) =>
+            updateField("appointment_default_duration_minutes", event.target.value)
+          }
+        />
+      </label>
+
+      <label>
+        Default Appointment Timezone
+        <input
+          value={form.appointment_default_timezone}
+          onChange={(event) =>
+            updateField("appointment_default_timezone", event.target.value)
+          }
+          placeholder="Asia/Dhaka"
         />
       </label>
 

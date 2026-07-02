@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GeneratePatientHandoutRequest;
 use App\Http\Resources\PatientHandoutRunResource;
@@ -16,6 +17,8 @@ use RuntimeException;
 
 class PatientHandoutController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -59,7 +62,7 @@ class PatientHandoutController extends Controller
             $run = $service->generate(
                 patient: $patient,
                 visit: $visit,
-                doctorId: $request->user()->id,
+                doctorId: $this->ownerDoctorIdForVisit($request, $visit),
                 prescriptionId: $validated['prescription_id'] ?? null,
                 prescriptionReviewRunId: $validated['prescription_review_run_id'] ?? null,
                 handoutType: $validated['handout_type'] ?? 'prescription',

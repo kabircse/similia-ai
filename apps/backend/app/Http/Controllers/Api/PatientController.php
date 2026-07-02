@@ -37,9 +37,13 @@ class PatientController extends Controller
 
     public function store(StorePatientRequest $request, AuditLogger $auditLogger): PatientResource
     {
+        $doctorId = $request->user()->role === 'admin'
+            ? ($request->validated('doctor_id') ?? $request->user()->id)
+            : $request->user()->id;
+
         $patient = Patient::create([
             ...$request->validated(),
-            'doctor_id' => $request->user()->id,
+            'doctor_id' => $doctorId,
         ]);
 
         $auditLogger->log(

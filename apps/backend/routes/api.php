@@ -109,13 +109,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/knowledge/search', [KnowledgeSearchController::class, 'index']);
 
     Route::middleware('permission:manage_clinic_settings')->group(function () {
-        Route::get('/clinic-settings', [ClinicSettingController::class, 'show']);
-        Route::put('/clinic-settings', [ClinicSettingController::class, 'update']);
+        Route::get('/clinic-settings/{doctor?}', [ClinicSettingController::class, 'show']);
+        Route::put('/clinic-settings/{doctor?}', [ClinicSettingController::class, 'update']);
     });
 
-    Route::apiResource('patients', PatientController::class);
-    Route::get('/patients/{patient}/timeline', [PatientTimelineController::class, 'index']);
-    Route::apiResource('patients.visits', PatientVisitController::class);
+    Route::middleware('permission:manage_patients')->group(function () {
+        Route::apiResource('patients', PatientController::class);
+        Route::get('/patients/{patient}/timeline', [PatientTimelineController::class, 'index']);
+    });
+
+    Route::apiResource('patients.visits', PatientVisitController::class)
+        ->middleware('permission:manage_visits');
 
     Route::middleware('permission:manage_visits')->group(function () {
         Route::get(
@@ -151,7 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post(
         '/patients/{patient}/visits/{visit}/structure-case',
         [PatientVisitAiController::class, 'structure']
-    );
+    )->middleware('permission:manage_visits');
     Route::post(
         '/patients/{patient}/visits/{visit}/structure-case/async',
         [AiTaskController::class, 'structureCase']
@@ -285,49 +289,54 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/repertory/rubrics', [RepertoryRubricController::class, 'index']);
     Route::get('/repertory/rubrics/{rubric}', [RepertoryRubricController::class, 'show']);
 
-    Route::get('/patients/{patient}/visits/{visit}/rubrics', [CaseRubricController::class, 'index']);
-    Route::post('/patients/{patient}/visits/{visit}/rubrics', [CaseRubricController::class, 'store']);
-    Route::patch('/patients/{patient}/visits/{visit}/rubrics/{caseRubric}', [CaseRubricController::class, 'update']);
-    Route::delete('/patients/{patient}/visits/{visit}/rubrics/{caseRubric}', [CaseRubricController::class, 'destroy']);
-    Route::get(
-        '/patients/{patient}/visits/{visit}/repertorization-runs',
-        [RepertorizationController::class, 'index']
-    );
+    Route::middleware('permission:manage_rubrics')->group(function () {
+        Route::get('/patients/{patient}/visits/{visit}/rubrics', [CaseRubricController::class, 'index']);
+        Route::post('/patients/{patient}/visits/{visit}/rubrics', [CaseRubricController::class, 'store']);
+        Route::patch('/patients/{patient}/visits/{visit}/rubrics/{caseRubric}', [CaseRubricController::class, 'update']);
+        Route::delete('/patients/{patient}/visits/{visit}/rubrics/{caseRubric}', [CaseRubricController::class, 'destroy']);
+    });
 
     Route::get(
         '/patients/{patient}/visits/{visit}/print/case-sheet',
         [VisitPrintController::class, 'caseSheet']
-    );
+    )->middleware('permission:print_documents');
 
     Route::get(
         '/patients/{patient}/visits/{visit}/print/prescription',
         [VisitPrintController::class, 'prescription']
-    );
+    )->middleware('permission:print_documents');
 
-    Route::get(
-        '/patients/{patient}/visits/{visit}/repertorization-runs/{run}',
-        [RepertorizationController::class, 'show']
-    );
+    Route::middleware('permission:run_repertorization')->group(function () {
+        Route::get(
+            '/patients/{patient}/visits/{visit}/repertorization-runs',
+            [RepertorizationController::class, 'index']
+        );
 
-    Route::post(
-        '/patients/{patient}/visits/{visit}/repertorize/weighted',
-        [RepertorizationController::class, 'runWeighted']
-    );
+        Route::get(
+            '/patients/{patient}/visits/{visit}/repertorization-runs/{run}',
+            [RepertorizationController::class, 'show']
+        );
 
-    Route::post(
-        '/patients/{patient}/visits/{visit}/repertorize/cross',
-        [RepertorizationController::class, 'runCross']
-    );
+        Route::post(
+            '/patients/{patient}/visits/{visit}/repertorize/weighted',
+            [RepertorizationController::class, 'runWeighted']
+        );
 
-    Route::post(
-        '/patients/{patient}/visits/{visit}/repertorize/eliminative',
-        [RepertorizationController::class, 'runEliminative']
-    );
+        Route::post(
+            '/patients/{patient}/visits/{visit}/repertorize/cross',
+            [RepertorizationController::class, 'runCross']
+        );
+
+        Route::post(
+            '/patients/{patient}/visits/{visit}/repertorize/eliminative',
+            [RepertorizationController::class, 'runEliminative']
+        );
+    });
 
     Route::post(
         '/patients/{patient}/visits/{visit}/materia-medica/compare',
         [MateriaMedicaComparisonController::class, 'compare']
-    );
+    )->middleware('permission:compare_materia_medica');
     Route::post(
         '/patients/{patient}/visits/{visit}/materia-medica/compare/async',
         [AiTaskController::class, 'compareMateriaMedica']
@@ -348,35 +357,39 @@ Route::middleware('auth:sanctum')->group(function () {
         [RemedySuggestionController::class, 'generate']
     )->middleware('permission:compare_materia_medica');
 
-    Route::get(
-        '/patients/{patient}/visits/{visit}/prescription',
-        [PatientPrescriptionController::class, 'show']
-    );
+    Route::middleware('permission:manage_prescriptions')->group(function () {
+        Route::get(
+            '/patients/{patient}/visits/{visit}/prescription',
+            [PatientPrescriptionController::class, 'show']
+        );
 
-    Route::put(
-        '/patients/{patient}/visits/{visit}/prescription',
-        [PatientPrescriptionController::class, 'save']
-    );
+        Route::put(
+            '/patients/{patient}/visits/{visit}/prescription',
+            [PatientPrescriptionController::class, 'save']
+        );
 
-    Route::delete(
-        '/patients/{patient}/visits/{visit}/prescription',
-        [PatientPrescriptionController::class, 'destroy']
-    );
+        Route::delete(
+            '/patients/{patient}/visits/{visit}/prescription',
+            [PatientPrescriptionController::class, 'destroy']
+        );
+    });
 
-    Route::get(
-        '/patients/{patient}/visits/{visit}/fee',
-        [PatientFeeController::class, 'show']
-    );
+    Route::middleware('permission:manage_fees')->group(function () {
+        Route::get(
+            '/patients/{patient}/visits/{visit}/fee',
+            [PatientFeeController::class, 'show']
+        );
 
-    Route::put(
-        '/patients/{patient}/visits/{visit}/fee',
-        [PatientFeeController::class, 'save']
-    );
+        Route::put(
+            '/patients/{patient}/visits/{visit}/fee',
+            [PatientFeeController::class, 'save']
+        );
 
-    Route::delete(
-        '/patients/{patient}/visits/{visit}/fee',
-        [PatientFeeController::class, 'destroy']
-    );
+        Route::delete(
+            '/patients/{patient}/visits/{visit}/fee',
+            [PatientFeeController::class, 'destroy']
+        );
+    });
 
     Route::get('/dashboard', function () {
         return response()->json([

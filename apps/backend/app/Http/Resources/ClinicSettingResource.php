@@ -32,6 +32,10 @@ class ClinicSettingResource extends JsonResource
 
             'prescription_footer' => $this->prescription_footer,
             'case_sheet_footer' => $this->case_sheet_footer,
+            'prescription_header' => $this->prescription_header,
+            'prescription_disclaimer' => $this->prescription_disclaimer,
+            'appointment_default_duration_minutes' => $this->appointment_default_duration_minutes,
+            'appointment_default_timezone' => $this->appointment_default_timezone,
 
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

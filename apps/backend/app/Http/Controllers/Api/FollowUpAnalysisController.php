@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateFollowUpAnalysisRequest;
 use App\Http\Resources\FollowUpAnalysisRunResource;
@@ -16,6 +17,8 @@ use RuntimeException;
 
 class FollowUpAnalysisController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -59,7 +62,7 @@ class FollowUpAnalysisController extends Controller
             $run = $service->analyze(
                 patient: $patient,
                 currentVisit: $visit,
-                doctorId: $request->user()->id,
+                doctorId: $this->ownerDoctorIdForVisit($request, $visit),
                 previousVisitId: $validated['previous_visit_id'] ?? null,
                 prescriptionId: $validated['prescription_id'] ?? null,
                 includeTimelineContext: $request->boolean('include_timeline_context', true),

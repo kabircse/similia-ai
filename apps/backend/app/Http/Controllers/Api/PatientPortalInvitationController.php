@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePatientPortalInvitationRequest;
 use App\Http\Resources\PatientPortalInvitationResource;
@@ -14,6 +15,8 @@ use Illuminate\Http\Request;
 
 class PatientPortalInvitationController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -41,7 +44,7 @@ class PatientPortalInvitationController extends Controller
         $invitation = $service->createInvitation(
             patient: $patient,
             visit: $visit,
-            doctorId: $request->user()->id,
+            doctorId: $this->ownerDoctorIdForVisit($request, $visit),
             prescriptionId: $data['prescription_id'] ?? null,
             purpose: $data['purpose'] ?? 'follow_up_form',
             expiresInDays: $data['expires_in_days'] ?? 7,

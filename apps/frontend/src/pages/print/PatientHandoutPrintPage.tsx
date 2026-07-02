@@ -80,6 +80,11 @@ export function PatientHandoutPrintPage() {
             {doctorName && <p>{doctorName}</p>}
             {valueText(clinic.address, "") && <p>{valueText(clinic.address, "")}</p>}
             {clinicContact && <p>{clinicContact}</p>}
+            {valueText(clinic.prescription_header, "") && (
+              <div className="print-branding-block">
+                <p className="print-branding-header">{valueText(clinic.prescription_header)}</p>
+              </div>
+            )}
           </div>
 
           <div className="print-doc-title">
@@ -153,6 +158,12 @@ export function PatientHandoutPrintPage() {
           <footer className="print-footer-note handout-print-footer">
             <p>{handout.footer_note}</p>
           </footer>
+        )}
+
+        {valueText(clinic.prescription_disclaimer, "") && (
+          <section className="print-section print-footer-note">
+            <p className="print-paragraph">{valueText(clinic.prescription_disclaimer)}</p>
+          </section>
         )}
       </article>
     </main>

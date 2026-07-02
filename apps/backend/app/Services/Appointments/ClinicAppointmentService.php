@@ -4,6 +4,7 @@ namespace App\Services\Appointments;
 
 use App\Models\ClinicAppointment;
 use App\Models\ClinicAppointmentReminder;
+use App\Models\ClinicSetting;
 use App\Models\Patient;
 use App\Models\PatientPrescription;
 use App\Models\PatientVisit;
@@ -25,8 +26,9 @@ class ClinicAppointmentService
 
             $this->ensureRelatedRecordsMatch($patient, $visit, $prescription);
 
+            $settings = ClinicSetting::query()->where('doctor_id', $doctorId)->first();
             $start = Carbon::parse($input['scheduled_start_at']);
-            $duration = (int) ($input['duration_minutes'] ?? 30);
+            $duration = (int) ($input['duration_minutes'] ?? $settings?->appointment_default_duration_minutes ?? 30);
             $reminders = $this->normalizeReminderMinutes(
                 $input['reminder_minutes_before'] ?? [1440, 120]
             );
@@ -43,7 +45,7 @@ class ClinicAppointmentService
                 'status' => 'scheduled',
                 'scheduled_start_at' => $start,
                 'scheduled_end_at' => $start->copy()->addMinutes($duration),
-                'timezone' => $input['timezone'] ?? 'Asia/Dhaka',
+                'timezone' => $input['timezone'] ?? $settings?->appointment_default_timezone ?? 'Asia/Dhaka',
                 'title' => $input['title'] ?? $this->defaultTitle($patient, $appointmentType),
                 'reason' => $input['reason'] ?? null,
                 'doctor_note' => $input['doctor_note'] ?? null,

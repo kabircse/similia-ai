@@ -69,9 +69,14 @@ export function CaseSheetPrintPage() {
               />
             )}
             <h1>{data.clinic.name}</h1>
-            <p>{data.clinic.tagline}</p>
+            {data.clinic.tagline && <p>{data.clinic.tagline}</p>}
             {data.clinic.address && <p>{data.clinic.address}</p>}
             {clinicContact && <p>{clinicContact}</p>}
+            {data.clinic.prescription_header && (
+              <div className="print-branding-block">
+                <p className="print-branding-header">{data.clinic.prescription_header}</p>
+              </div>
+            )}
           </div>
 
           <div className="print-doc-title">
@@ -328,6 +333,11 @@ export function CaseSheetPrintPage() {
             <p>Doctor: {data.doctor.name}</p>
             {data.doctor.qualification && <p>{data.doctor.qualification}</p>}
           </div>
+          {data.clinic.prescription_disclaimer && (
+            <div className="print-branding-disclaimer">
+              <p>{data.clinic.prescription_disclaimer}</p>
+            </div>
+          )}
           <p>Signature: __________________________</p>
         </footer>
 

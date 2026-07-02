@@ -34,6 +34,10 @@ class UpdateClinicSettingRequest extends FormRequest
 
             'prescription_footer' => ['nullable', 'string', 'max:3000'],
             'case_sheet_footer' => ['nullable', 'string', 'max:3000'],
+            'prescription_header' => ['nullable', 'string', 'max:3000'],
+            'prescription_disclaimer' => ['nullable', 'string', 'max:3000'],
+            'appointment_default_duration_minutes' => ['nullable', 'integer', 'min:0', 'max:480'],
+            'appointment_default_timezone' => ['nullable', 'string', 'max:80'],
         ];
     }
 }

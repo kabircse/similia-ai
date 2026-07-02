@@ -3835,6 +3835,26 @@ button:disabled {
   font-size: 13px;
 }
 
+.print-branding-block {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #d7dfd8;
+}
+
+.print-branding-header {
+  font-weight: 700;
+  color: #102018;
+  white-space: pre-wrap;
+}
+
+.print-branding-disclaimer {
+  max-width: 320px;
+  border-left: 3px solid #145c43;
+  padding-left: 12px;
+  color: #526052;
+  font-size: 13px;
+  line-height: 1.5;
+}
 .handout-print-page .print-sheet {
   width: min(840px, 100%);
 }

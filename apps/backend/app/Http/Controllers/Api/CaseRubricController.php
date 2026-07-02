@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCaseRubricRequest;
 use App\Http\Requests\UpdateCaseRubricRequest;
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
 
 class CaseRubricController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function index(Request $request, Patient $patient, PatientVisit $visit)
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -44,7 +47,7 @@ class CaseRubricController extends Controller
                 'repertory_rubric_id' => $request->validated('repertory_rubric_id'),
             ],
             [
-                'doctor_id' => $request->user()->id,
+                'doctor_id' => $this->ownerDoctorIdForVisit($request, $visit),
                 'symptom_type' => $request->validated('symptom_type'),
                 'importance' => $request->validated('importance'),
                 'weight' => $request->validated('weight'),

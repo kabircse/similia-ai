@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesDoctorOwnership;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SavePatientFeeRequest;
 use App\Http\Resources\PatientFeeResource;
@@ -14,6 +15,8 @@ use Illuminate\Http\Request;
 
 class PatientFeeController extends Controller
 {
+    use ResolvesDoctorOwnership;
+
     public function show(Request $request, Patient $patient, PatientVisit $visit): JsonResponse
     {
         $this->ensureCanAccessVisit($request, $patient, $visit);
@@ -59,7 +62,7 @@ class PatientFeeController extends Controller
             ],
             [
                 'patient_id' => $patient->id,
-                'doctor_id' => $request->user()->id,
+                'doctor_id' => $this->ownerDoctorIdForVisit($request, $visit),
 
                 'currency' => $data['currency'] ?? 'BDT',
 

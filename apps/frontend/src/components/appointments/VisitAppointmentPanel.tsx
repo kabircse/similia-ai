@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, CheckCircle2, XCircle } from "lucide-react";
 import {
   createVisitAppointment,
+  getClinicSettings,
   getVisitAppointments,
   updateAppointmentStatus,
 } from "../../lib/api";
@@ -31,6 +32,17 @@ export function VisitAppointmentPanel({
     queryFn: () => getVisitAppointments(patientId, visitId),
   });
 
+  const clinicSettingsQuery = useQuery({
+    queryKey: ["clinic-settings"],
+    queryFn: getClinicSettings,
+  });
+
+  useEffect(() => {
+    if (clinicSettingsQuery.data?.appointment_default_duration_minutes != null) {
+      setDurationMinutes(clinicSettingsQuery.data.appointment_default_duration_minutes);
+    }
+  }, [clinicSettingsQuery.data]);
+
   const createMutation = useMutation({
     mutationFn: () =>
       createVisitAppointment(patientId, visitId, {
@@ -40,6 +52,7 @@ export function VisitAppointmentPanel({
         source: "manual",
         scheduled_start_at: scheduledStartAt,
         duration_minutes: durationMinutes,
+        timezone: clinicSettingsQuery.data?.appointment_default_timezone ?? "Asia/Dhaka",
         contact_method: contactMethod,
         reason: reason || null,
         send_reminders: true,
